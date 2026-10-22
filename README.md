@@ -20,3 +20,7 @@ Nessuna build: apri `index.html` nel browser (HTML + Canvas + JS puro).
 
 ## Struttura
 `js/core.js` RNG + generazione · `js/draw.js` personaggi · `js/storage.js` salvataggi · `js/game.js` logica/render · `js/ui.js` menu e schermate
+
+## Porting in GDScript (Godot 4) e guida
+- `godot_port/scripts/` contiene il porting del gioco in GDScript (word_gen, save_manager, person_drawer, game).
+- `docs/smista-rifiuti-gdscript.pdf` è la guida con il codice spiegato riga per riga.
