@@ -147,7 +147,7 @@
     noun: 'pelato al balcone', art: 'Un', g: 0,
     tip: 'Non si ricicla: va nell\'indifferenziato, con un saluto rispettoso.',
     compose() {
-      return 'Non avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA';
+      return 'di TututututuTTE le categorie... eiie...\nNon avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA';
     },
     draw(ctx, c, rg) {
       rect(ctx, '#e5e7eb', -24, -28, 48, 50, 8); rect(ctx, '#cbd5e1', -24, -28, 10, 50, 4);
