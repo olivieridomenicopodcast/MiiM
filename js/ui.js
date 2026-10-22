@@ -195,6 +195,7 @@
       <h2>Pausa</h2>
       <button class="big" data-act="resume">▶ Riprendi</button>
       <button class="alt" data-act="saveNow">💾 Salva partita</button>
+      ${game && !game.id ? '<button class="alt" data-act="finish">🏁 Termina il turno</button>' : ''}
       <button class="alt" data-act="pdex">Pokédex</button>
       <button class="alt" data-act="mute">Audio: ${M.Storage.settings().mute ? 'OFF' : 'ON'}</button>
       <button class="danger" data-act="quit">Salva ed esci al menu</button>
@@ -238,7 +239,7 @@
         const best = m.id === 'nastro' ? st.best : (st.modeBest || {})[m.id] || 0;
         const locked = m.id !== 'nastro' && !modesUnlocked(slot);
         return `<button class="${m.id === 'nastro' ? 'big' : 'big alt'}" data-act="mode" data-id="${id}" data-mode="${m.id}" style="text-align:left" ${locked ? 'disabled' : ''}>
-          ${locked ? '🔒 ' : ''}${esc(m.name)}${m.id === 'nastro' && slot.run ? ' · <span style="color:#f5c518">continua il turno</span>' : ''}<br><small style="font-weight:400">${locked ? 'Si sblocca finendo almeno un turno del nastro.' : `${esc(m.desc)} · record ${best}`}</small></button>`;
+          ${locked ? '🔒 ' : ''}${esc(m.name)}${m.id === 'nastro' && slot.run ? ' · <span style="color:#f5c518">continua il turno</span>' : ''}<br><small style="font-weight:400">${locked ? 'Si sblocca finendo un turno del nastro: arriva a 15 errori, oppure usa «Termina il turno» dal menu di pausa.' : `${esc(m.desc)} · record ${best}`}</small></button>`;
       }).join('')}
       <button class="alt" data-act="menu">Indietro</button>
     </div>`);
@@ -342,6 +343,7 @@
       play(slot.id);
     },
     resume,
+    finish: () => { if (game && !game.over && confirm('Terminare il turno adesso? Il punteggio verrà registrato.')) { hide(); game.gameOver(); } },
     saveNow: () => { game.persist(); const b = root.querySelector('[data-act=saveNow]'); b.textContent = '✔ Salvato'; },
     pdex: () => { dex(); dex.back = game.over ? () => gameOver(lastOver) : pauseMenu; },
     quit: () => { if (game) game.persist(); endGame(); menu(); },
