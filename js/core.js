@@ -100,21 +100,24 @@
     return word;
   }
 
-  // Parola n-esima del seme (deterministica). Non ripete nessuna delle RECENT parole precedenti.
+  // Parola n-esima di una "sequenza" del seme (deterministica). Non ripete nessuna delle RECENT parole precedenti.
+  // Ogni modalità usa un canale diverso (il nastro usa il canale vuoto), così le sequenze sono indipendenti.
   const RECENT = 15;
   const seqCache = {};
-  function makeWord(seed, index) {
-    if (!seqCache[seed]) {
-      if (Object.keys(seqCache).length > 20) for (const k of Object.keys(seqCache)) delete seqCache[k];
-      seqCache[seed] = [];
+  function makeSeq(seed, channel, index) {
+    const ck = seed + '|' + channel;
+    if (!seqCache[ck]) {
+      if (Object.keys(seqCache).length > 40) for (const k of Object.keys(seqCache)) delete seqCache[k];
+      seqCache[ck] = [];
     }
-    const arr = seqCache[seed];
+    const arr = seqCache[ck];
     while (arr.length <= index) {
       const recent = new Set(arr.slice(-RECENT).map((w) => w.text));
-      arr.push(generate(seed, String(arr.length), recent));
+      arr.push(generate(seed, channel + arr.length, recent));
     }
     return arr[index];
   }
+  const makeWord = (seed, index) => makeSeq(seed, '', index);
 
   // Parola "gemella" legata a un'altra (per i rifiuti accavallati): diversa da quella data.
   function makeCompanion(seed, index, other) {
@@ -128,5 +131,5 @@
     return s;
   }
 
-  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, makeCompanion, categoryOf, SPECIAL, isPalindrome, randomSeed });
+  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, makeSeq, generate, makeCompanion, categoryOf, SPECIAL, isPalindrome, randomSeed });
 })();

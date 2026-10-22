@@ -43,7 +43,8 @@
       <p>Ogni tanto due rifiuti arrivano <b>accavallati</b>: prendili e premi <b>Spazio a raffica</b> (o tocca il pulsante) finché la barra non si riempie; la barra cala se rallenti, e intanto non puoi muoverti. Poi portali nelle casse giuste: in mano ne hai due, e la cassa sotto cui sei prende quello che corrisponde. I colleghi non sanno staccarli!</p>
       <p>Se un rifiuto cade dal nastro o lo butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 rifiuti di fila giuste il moltiplicatore sale.</p>
       <p>Con i punti puoi <b>assumere dei colleghi</b> (fino a 3, costano 300, 1000 e 2500 punti) comandati dall'IA: li compri col tasto H o toccando il riquadro in alto a sinistra, che mostra quanto manca. Ogni tanto sbagliano cassa!</p>
-      <p>Ogni rifiuto smistato finisce nel <b>Pokédex</b>, che è unico per tutti i semi e per tutti i salvataggi. Lo stesso seme genera sempre gli stessi rifiuti.</p>
+      <p><b>Altre modalità</b> (le scegli dopo aver selezionato il salvataggio): <b>Dominò dei palindromi</b> (attacca parole con la stessa lettera o lo stesso colore e batti Gino), <b>Il fiume dei riflessi</b> (raccogli i rifiuti veri con la barca, evita quelli con il riflesso sbagliato: sono illusioni) e <b>Mercatino dell'usato</b> (compra, contratta e rivendi in dodici clienti). Ogni modalità ha il suo record.</p>
+            <p>Ogni rifiuto smistato finisce nel <b>Pokédex</b>, che è unico per tutti i semi e per tutti i salvataggi. Lo stesso seme genera sempre gli stessi rifiuti.</p>
       <button data-act="menu">Indietro</button>
     </div>`);
   }
@@ -201,28 +202,64 @@
   }
 
   let lastOver = null;
+  let currentMode = 'nastro';
   function gameOver(s) {
     lastOver = s;
     show(`<div class="card narrow col">
-      <h2>Turno finito!</h2>
+      <h2>${esc(s.title || 'Turno finito!')}</h2>
       ${s.record ? '<p style="color:#f5c518;font-weight:700">🏆 Nuovo record!</p>' : ''}
       <div class="stat"><span>Punti</span><b>${s.score}</b></div>
       <div class="stat"><span>Record</span><b>${s.best}</b></div>
-      <div class="stat"><span>Rifiuti smistati</span><b>${s.saved}</b></div>
+      <div class="stat"><span>${esc(s.savedLabel || 'Rifiuti smistati')}</span><b>${s.saved}</b></div>
       <div class="stat"><span>Nuovi nel Pokédex</span><b>${s.newWords}</b></div>
-      <div class="stat"><span>Durata</span><b>${fmtTime(s.time)}</b></div>
+      ${s.time !== undefined ? `<div class="stat"><span>Durata</span><b>${fmtTime(s.time)}</b></div>` : ''}
+      ${(s.lines || []).join('')}
       <button class="big" data-act="again">Ancora!</button>
       <button class="alt" data-act="pdex">Pokédex</button>
+      <button class="alt" data-act="modes">Altre modalità</button>
       <button class="alt" data-act="quitNoSave">Menu</button>
+    </div>`);
+  }
+
+  // Scelta della modalità di gioco per un salvataggio.
+  function modePicker(id) {
+    const slot = M.Storage.get(id);
+    if (!slot) return menu();
+    endGame();
+    M.Storage.setLast(id);
+    const st = slot.stats;
+    show(`<div class="card col">
+      <h2>Come vuoi giocare, ${esc(slot.character.name)}? <small style="color:#a9b4c2;font-weight:400">seme ${esc(slot.seed)}</small></h2>
+      ${M.MODES.map((m) => {
+        const best = m.id === 'nastro' ? st.best : (st.modeBest || {})[m.id] || 0;
+        return `<button class="${m.id === 'nastro' ? 'big' : 'big alt'}" data-act="mode" data-id="${id}" data-mode="${m.id}" style="text-align:left">
+          ${esc(m.name)}${m.id === 'nastro' && slot.run ? ' · <span style="color:#f5c518">continua il turno</span>' : ''}<br><small style="font-weight:400">${esc(m.desc)} · record ${best}</small></button>`;
+      }).join('')}
+      <button class="alt" data-act="menu">Indietro</button>
     </div>`);
   }
 
   // ---------- flusso di gioco ----------
   function play(id) {
+    modePicker(id);
+  }
+
+  function startMode(id, mode) {
     const slot = M.Storage.get(id);
     if (!slot) return menu();
     endGame();
     M.Storage.setLast(id);
+    currentMode = mode;
+    if (mode !== 'nastro') {
+      const def = M.MODES.find((m) => m.id === mode);
+      const hooks = { persist: () => M.Storage.save(slot), onPause: pause, onEnd: (s) => gameOver(s), onQuit: () => { endGame(); menu(); } };
+      hide();
+      game = def.id === 'fiume' ? new def.cls(cv, slot, hooks) : new def.cls(root, slot, hooks);
+      game.start();
+      M.game = game;
+      fit();
+      return;
+    }
     hide();
     game = new M.Game(cv, slot, {
       persist: () => M.Storage.save(slot),
@@ -244,7 +281,7 @@
   }
 
   function pause() {
-    if (!game || game.over) return;
+    if (!game || game.over || game.noPause) return;
     if (game.paused) return resume();
     game.setPaused(true);
     pauseMenu();
@@ -274,6 +311,8 @@
     new: () => { draft = null; newGame(); },
     saves, help,
     play: (d) => play(d.id),
+    mode: (d) => startMode(d.id, d.mode),
+    modes: () => { const id = game && game.slot.id; endGame(); modePicker(id); },
     dex: () => { dex(); dex.back = menu; },
     item: (d) => itemCard(d.w),
     itemBack: () => dex(dex.back),
@@ -301,7 +340,7 @@
     pdex: () => { dex(); dex.back = game.over ? () => gameOver(lastOver) : pauseMenu; },
     quit: () => { if (game) game.persist(); endGame(); menu(); },
     quitNoSave: () => { endGame(); menu(); },
-    again: () => play(game.slot.id),
+    again: () => startMode(game.slot.id, currentMode),
   };
 
   root.addEventListener('click', (e) => {
@@ -319,8 +358,8 @@
     b.addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.setKey(k, true); });
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => game && game.setKey(k, false));
   });
-  document.getElementById('tAct').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.press(); });
-  document.getElementById('tHire').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.hire(); });
+  document.getElementById('tAct').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game && game.press) game.press(); });
+  document.getElementById('tHire').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game && game.hire) game.hire(); });
   document.getElementById('tPause').addEventListener('pointerdown', (e) => { e.preventDefault(); pause(); });
 
   // Adatta il canvas allo schermo e passa dal layout orizzontale a quello verticale.

@@ -58,6 +58,13 @@
     }
   }
 
+  // Record e partite per modalità (solo le modalità note, con numeri validi).
+  function sanitizeModes(o) {
+    const out = {};
+    for (const k of ['domino', 'fiume', 'mercatino']) if (o && typeof o === 'object') out[k] = clampInt(o[k], 0, 1e9, 0);
+    return out;
+  }
+
   function sanitizeCharacter(c) {
     c = c || {};
     return {
@@ -83,6 +90,8 @@
         best: clampInt(st.best, 0, 1e9, 0),
         saved: clampInt(st.saved, 0, 1e9, 0),
         runs: clampInt(st.runs, 0, 1e9, 0),
+        modeBest: sanitizeModes(st.modeBest),
+        modeRuns: sanitizeModes(st.modeRuns),
       },
       created: clampInt(o.created, 0, 8.64e15, Date.now()),
       updated: Date.now(),
@@ -107,7 +116,7 @@
         id: uid(),
         seed: String(seed || M.randomSeed()).trim().slice(0, 40),
         character: sanitizeCharacter(character),
-        stats: { best: 0, saved: 0, runs: 0 },
+        stats: { best: 0, saved: 0, runs: 0, modeBest: {}, modeRuns: {} },
         created: Date.now(),
         updated: Date.now(),
         run: null,

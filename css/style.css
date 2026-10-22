@@ -64,3 +64,16 @@ label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
 @media (max-width: 640px) { .itemrow { grid-template-columns: 1fr; } .itemrow canvas { max-width: 260px; margin: 0 auto; } }
 #touch #tHire.ready { background: #16a34a; animation: hirepulse .8s ease-in-out infinite; }
 @keyframes hirepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.0); transform: scale(1); } 50% { box-shadow: 0 0 14px 4px rgba(34,197,94,.9); transform: scale(1.08); } }
+
+/* modalità extra */
+.tile { display: inline-flex; align-items: stretch; background: #0f1318; border: 2px solid var(--c); border-radius: 10px; overflow: hidden; vertical-align: top; }
+.tile .end { display: flex; align-items: center; justify-content: center; width: 30px; background: var(--c); color: #0f1318; font: 800 20px "Courier New", monospace; }
+.tile .mid { display: flex; flex-direction: column; align-items: center; padding: 4px 8px; gap: 2px; min-width: 84px; }
+.tile .mid img { width: 56px; height: 56px; border-radius: 6px; }
+.tile .mid b { font: 700 15px "Courier New", monospace; }
+.tile.edge { box-shadow: 0 0 0 3px #fff3, 0 0 12px #ffd16688; }
+.chain { display: flex; gap: 4px; overflow-x: auto; padding: 8px 4px; background: #121821; border-radius: 10px; min-height: 100px; align-items: center; }
+.hand { display: flex; flex-wrap: wrap; gap: 8px; }
+.tileb { padding: 0; background: none; border-radius: 12px; }
+.tileb.ok .tile { box-shadow: 0 0 12px #7cfc9a99; }
+.tileb.no { opacity: .55; }
