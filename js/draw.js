@@ -62,20 +62,20 @@
     ctx.fill();
     rr(ctx, 0 - swing * 6, -4, 13, 5, 2);
     ctx.fill();
-    // gonna
+    // vestito svasato (femmina)
     if (f) {
-      ctx.fillStyle = shade(shirt, -0.18);
+      ctx.fillStyle = shade(shirt, -0.12);
       ctx.beginPath();
-      ctx.moveTo(-12, -32);
-      ctx.lineTo(12, -32);
-      ctx.lineTo(18, -19);
-      ctx.lineTo(-18, -19);
+      ctx.moveTo(-12, -40);
+      ctx.lineTo(12, -40);
+      ctx.lineTo(23, -12);
+      ctx.lineTo(-23, -12);
       ctx.closePath();
       ctx.fill();
     }
     // busto
     ctx.fillStyle = shirt;
-    if (f) rr(ctx, -12, -58, 24, 30, 6);
+    if (f) rr(ctx, -11, -58, 22, 30, 7);
     else rr(ctx, -15, -58, 30, 34, 6);
     ctx.fill();
     // braccia
@@ -117,6 +117,16 @@
       ctx.ellipse(-4, -81, 4, 2, -0.4, 0, Math.PI * 2);
       ctx.fill();
     }
+    if (f && ch.hair !== 'calvo') {
+      ctx.fillStyle = '#ff5fa2';
+      ctx.beginPath();
+      ctx.moveTo(-9, -87); ctx.lineTo(-18, -92); ctx.lineTo(-18, -80); ctx.closePath();
+      ctx.moveTo(-9, -87); ctx.lineTo(0, -92); ctx.lineTo(0, -82); ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-9, -87, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // viso
     ctx.fillStyle = '#222';
     ctx.beginPath();
@@ -125,16 +135,20 @@
     ctx.fill();
     if (f) {
       ctx.strokeStyle = '#222';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(-3, -74);
-      ctx.lineTo(-4.5, -75.5);
+      ctx.lineTo(-6, -77);
+      ctx.moveTo(-1, -75);
+      ctx.lineTo(-2, -79);
       ctx.moveTo(9, -74);
-      ctx.lineTo(10.5, -75.5);
+      ctx.lineTo(12, -77);
+      ctx.moveTo(7, -75);
+      ctx.lineTo(8, -79);
       ctx.stroke();
     }
-    ctx.strokeStyle = f ? '#b03a3a' : '#7a3b2e';
-    ctx.lineWidth = f ? 2 : 1.5;
+    ctx.strokeStyle = f ? '#e0245e' : '#7a3b2e';
+    ctx.lineWidth = f ? 3 : 1.5;
     ctx.beginPath();
     ctx.arc(3.5, -67, 3, 0.15 * Math.PI, 0.85 * Math.PI);
     ctx.stroke();
