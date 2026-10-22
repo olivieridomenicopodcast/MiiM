@@ -61,8 +61,9 @@
     return s === s.split('').reverse().join('');
   }
 
-  function categoryOf(seed, text) {
-    return xmur3(seed + '#' + text.toLowerCase())() % CATS.length;
+  // Il tipo dipende solo dalla parola (non dal seme), così il Pokédex è valido per tutti i semi.
+  function categoryOf(text) {
+    return xmur3('cat#' + text.toLowerCase())() % CATS.length;
   }
 
   // Parola n-esima del seme (deterministica).
@@ -88,7 +89,7 @@
     }
     const low = h + h.split('').reverse().join('');
     const text = low[0].toUpperCase() + low.slice(1, -1) + low[low.length - 1].toUpperCase();
-    return { text, len, cat: categoryOf(seed, text) };
+    return { text, len, cat: categoryOf(text) };
   }
 
   function randomSeed() {

@@ -16,6 +16,14 @@
     }
     if (!db || !Array.isArray(db.slots)) db = { slots: [], last: null, settings: { mute: false } };
     db.settings = db.settings || { mute: false };
+    // Il Pokédex è unico per tutti i semi; migra quelli per-salvataggio delle versioni precedenti.
+    if (!db.dex || typeof db.dex !== 'object') db.dex = {};
+    for (const s of db.slots) {
+      if (s.dex) {
+        mergeDex(db.dex, s.dex);
+        delete s.dex;
+      }
+    }
     return db;
   }
 
@@ -36,6 +44,18 @@
     return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
+  // Unisce (con validazione) un Pokédex nel destinazione; il tipo è sempre ricalcolato dalla parola.
+  function mergeDex(dst, src) {
+    if (!src || typeof src !== 'object') return;
+    for (const [text, d] of Object.entries(src)) {
+      if (!/^[A-Za-z]{4,8}$/.test(text) || text.length % 2 || !M.isPalindrome(text)) continue;
+      if (text[0] !== text[0].toUpperCase() || text.at(-1) !== text.at(-1).toUpperCase()) continue;
+      const n = clampInt(d && d.n, 1, 1e9, 1);
+      if (dst[text]) dst[text].n = Math.max(dst[text].n, n);
+      else dst[text] = { cat: M.categoryOf(text), len: text.length, n };
+    }
+  }
+
   function sanitizeCharacter(c) {
     c = c || {};
     return {
@@ -52,20 +72,11 @@
   function sanitizeSlot(o) {
     if (!o || typeof o !== 'object' || typeof o.seed !== 'string' || !o.seed.trim()) return null;
     const seed = o.seed.trim().slice(0, 40);
-    const dex = {};
-    if (o.dex && typeof o.dex === 'object') {
-      for (const [text, d] of Object.entries(o.dex)) {
-        if (!/^[A-Za-z]{4,8}$/.test(text) || text.length % 2 || !M.isPalindrome(text)) continue;
-        if (text[0] !== text[0].toUpperCase() || text.at(-1) !== text.at(-1).toUpperCase()) continue;
-        dex[text] = { cat: M.categoryOf(seed, text), len: text.length, n: clampInt(d && d.n, 1, 1e9, 1) };
-      }
-    }
     const st = o.stats || {};
     const slot = {
       id: uid(),
       seed,
       character: sanitizeCharacter(o.character),
-      dex,
       stats: {
         best: clampInt(st.best, 0, 1e9, 0),
         saved: clampInt(st.saved, 0, 1e9, 0),
@@ -94,7 +105,6 @@
         id: uid(),
         seed: String(seed || M.randomSeed()).trim().slice(0, 40),
         character: sanitizeCharacter(character),
-        dex: {},
         stats: { best: 0, saved: 0, runs: 0 },
         created: Date.now(),
         updated: Date.now(),
@@ -127,6 +137,9 @@
       load().last = id;
       flush();
     },
+    dex() {
+      return load().dex;
+    },
     settings() {
       return load().settings;
     },
@@ -135,7 +148,7 @@
     },
     exportJSON(ids) {
       const slots = load().slots.filter((s) => !ids || ids.includes(s.id));
-      return JSON.stringify({ format: FORMAT, version: 1, exported: new Date().toISOString(), slots }, null, 1);
+      return JSON.stringify({ format: FORMAT, version: 2, exported: new Date().toISOString(), dex: db.dex, slots }, null, 1);
     },
     // Ritorna il numero di salvataggi importati (sempre come nuovi slot).
     importJSON(text) {
@@ -144,6 +157,7 @@
       if (!arr) throw new Error('File non valido');
       load();
       let n = 0;
+      if (data && data.format === FORMAT) mergeDex(db.dex, data.dex);
       for (const o of arr) {
         const s = sanitizeSlot(o);
         if (s) {
@@ -151,6 +165,7 @@
           n++;
         }
       }
+      for (const o of arr) if (o && o.dex) mergeDex(db.dex, o.dex);
       if (!n) throw new Error('Nessun salvataggio valido nel file');
       flush();
       return n;

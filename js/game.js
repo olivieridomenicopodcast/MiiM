@@ -89,7 +89,7 @@
         const mk = (o) => {
           const text = String(o.text);
           if (!/^[A-Za-z]{4,8}$/.test(text) || text.length % 2 || !M.isPalindrome(text)) throw 0;
-          return { id: r.wid++, text, len: text.length, cat: M.categoryOf(this.slot.seed, text), x: num(o.x, this.W + 50, -50, 3000), claim: null };
+          return { id: r.wid++, text, len: text.length, cat: M.categoryOf(text), x: num(o.x, this.W + 50, -50, 3000), claim: null };
         };
         r.words = s.words.slice(0, 60).map(mk);
         r.player.x = num(s.player.x, this.W / 2, 30, this.W - 30);
@@ -295,12 +295,13 @@
       r.score += pts;
       r.saved++;
       slot.stats.saved++;
-      const d = slot.dex[w.text];
+      const dex = M.Storage.dex();
+      const d = dex[w.text];
       if (d) d.n++;
       else {
-        slot.dex[w.text] = { cat: w.cat, len: w.len, n: 1 };
+        dex[w.text] = { cat: w.cat, len: w.len, n: 1 };
         r.newWords++;
-        this.toast('Nuovo nel catalogo: ' + w.text);
+        this.toast('Nuovo nel Pokédex: ' + w.text);
         M.sfx('new');
       }
       M.sfx('ok');

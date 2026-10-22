@@ -1,4 +1,4 @@
-// Interfaccia: menu, creazione personaggio, salvataggi, catalogo, pausa.
+// Interfaccia: menu, creazione personaggio, salvataggi, Pokédex, pausa.
 (function () {
   const M = window.MiiM;
   const root = document.getElementById('ui');
@@ -22,7 +22,7 @@
       ${last ? `<button class="big" data-act="continue">▶ Continua<br><small>${esc(last.character.name)} · seme ${esc(last.seed)}</small></button>` : ''}
       <button class="big ${last ? 'alt' : ''}" data-act="new">Nuova partita</button>
       <button class="alt" data-act="saves">Salvataggi (${M.Storage.list().length})</button>
-      <button class="alt" data-act="dexLast" ${last ? '' : 'disabled'}>Catalogo dei rifiuti</button>
+      <button class="alt" data-act="dex">Pokédex dei rifiuti (${Object.keys(M.Storage.dex()).length})</button>
       <div class="row">
         <button class="alt" data-act="help" style="flex:1">Come si gioca</button>
         <button class="alt" data-act="mute" style="flex:1">Audio: ${mute ? 'OFF' : 'ON'}</button>
@@ -37,7 +37,7 @@
       <p>Il colore indica il tipo di rifiuto: portalo nella cassa dello stesso colore. Ci sono rifiuti leggeri e frequenti, medi, e pesantissimi e rari (ma valgono di più): più è pesante, più vai piano.</p>
       <p>Se un rifiuto cade dal nastro o lo butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 rifiuti di fila giuste il moltiplicatore sale.</p>
       <p>Con i punti puoi <b>assumere dei colleghi</b> (fino a 3, costano 300, 1000 e 2500 punti) comandati dall'IA: li compri col tasto H o toccando il riquadro in alto a sinistra, che mostra quanto manca. Ogni tanto sbagliano cassa!</p>
-      <p>Ogni rifiuto smistato finisce nel <b>catalogo</b> di quel seme. Lo stesso seme genera sempre gli stessi rifiuti.</p>
+      <p>Ogni rifiuto smistato finisce nel <b>Pokédex</b>, che è unico per tutti i semi e per tutti i salvataggi. Lo stesso seme genera sempre gli stessi rifiuti.</p>
       <button data-act="menu">Indietro</button>
     </div>`);
   }
@@ -49,11 +49,10 @@
       ${list.length ? '' : '<p>Nessun salvataggio. Inizia una nuova partita o importane uno.</p>'}
       ${list.map((s) => `<div class="slot">
           <div><b>${esc(s.character.name)}</b> · seme <code>${esc(s.seed)}</code>
-            <small>Record ${s.stats.best} · ${Object.keys(s.dex).length} rifiuti nel catalogo · ${s.stats.runs} turni${s.run ? ' · <b style="color:#f5c518">partita in corso</b>' : ''}</small>
+            <small>Record ${s.stats.best} · ${s.stats.runs} turni${s.run ? ' · <b style="color:#f5c518">partita in corso</b>' : ''}</small>
             <small>Ultimo salvataggio: ${fmtDate(s.updated)}</small></div>
           <div class="row">
             <button data-act="play" data-id="${s.id}">Gioca</button>
-            <button class="alt" data-act="dex" data-id="${s.id}">Catalogo</button>
             <button class="alt" data-act="export" data-id="${s.id}">Esporta</button>
             <button class="danger" data-act="del" data-id="${s.id}">✕</button>
           </div></div>`).join('')}
@@ -126,12 +125,12 @@
     M.drawPerson(ctx, 95, 225, draft, { scale: 2.1, facing: 1 });
   }
 
-  function dex(slot, back) {
-    const entries = Object.entries(slot.dex);
+  function dex(back) {
+    const entries = Object.entries(M.Storage.dex());
     const byLen = (n) => entries.filter(([, d]) => d.len === n).length;
     let filter = -1, sort = 'az';
     show(`<div class="card col">
-      <h2>Catalogo · ${esc(slot.character.name)} · seme ${esc(slot.seed)}</h2>
+      <h2>Pokédex dei rifiuti</h2>
       <div class="stat"><span>Rifiuti scoperti</span><b>${entries.length}</b></div>
       <div class="stat"><span>Leggeri / medi / pesanti</span><b>${byLen(4)} / ${byLen(6)} / ${byLen(8)}</b></div>
       <div class="row" id="dexTabs"></div>
@@ -168,7 +167,7 @@
       <h2>Pausa</h2>
       <button class="big" data-act="resume">▶ Riprendi</button>
       <button class="alt" data-act="saveNow">💾 Salva partita</button>
-      <button class="alt" data-act="pdex">Catalogo</button>
+      <button class="alt" data-act="pdex">Pokédex</button>
       <button class="alt" data-act="mute">Audio: ${M.Storage.settings().mute ? 'OFF' : 'ON'}</button>
       <button class="danger" data-act="quit">Salva ed esci al menu</button>
     </div>`);
@@ -183,10 +182,10 @@
       <div class="stat"><span>Punti</span><b>${s.score}</b></div>
       <div class="stat"><span>Record</span><b>${s.best}</b></div>
       <div class="stat"><span>Rifiuti smistati</span><b>${s.saved}</b></div>
-      <div class="stat"><span>Nuovi nel catalogo</span><b>${s.newWords}</b></div>
+      <div class="stat"><span>Nuovi nel Pokédex</span><b>${s.newWords}</b></div>
       <div class="stat"><span>Durata</span><b>${fmtTime(s.time)}</b></div>
       <button class="big" data-act="again">Ancora!</button>
-      <button class="alt" data-act="pdex">Catalogo</button>
+      <button class="alt" data-act="pdex">Pokédex</button>
       <button class="alt" data-act="quitNoSave">Menu</button>
     </div>`);
   }
@@ -247,8 +246,7 @@
     new: () => { draft = null; newGame(); },
     saves, help,
     play: (d) => play(d.id),
-    dexLast: () => { const s = M.Storage.last(); if (s) { dex(s); dex.back = menu; } },
-    dex: (d) => { dex(M.Storage.get(d.id)); dex.back = saves; },
+    dex: () => { dex(); dex.back = menu; },
     back: () => (dex.back || menu)(),
     del: (d) => { const s = M.Storage.get(d.id); if (s && confirm(`Eliminare il salvataggio di ${s.character.name} (seme ${s.seed})?`)) { M.Storage.remove(d.id); saves(); } },
     export: (d) => { const s = M.Storage.get(d.id); download(`rifiuti-${slug(s.character.name)}-${slug(s.seed)}.json`, M.Storage.exportJSON([d.id])); },
@@ -270,7 +268,7 @@
     },
     resume,
     saveNow: () => { game.persist(); const b = root.querySelector('[data-act=saveNow]'); b.textContent = '✔ Salvato'; },
-    pdex: () => { dex(game.slot); dex.back = game.over ? () => gameOver(lastOver) : pauseMenu; },
+    pdex: () => { dex(); dex.back = game.over ? () => gameOver(lastOver) : pauseMenu; },
     quit: () => { if (game) game.persist(); endGame(); menu(); },
     quitNoSave: () => { endGame(); menu(); },
     again: () => play(game.slot.id),
