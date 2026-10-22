@@ -146,8 +146,11 @@
   const BALCONY = {
     noun: 'pelato al balcone', art: 'Un', g: 0,
     tip: 'Non si ricicla: va nell\'indifferenziato, con un saluto rispettoso.',
-    compose() {
-      return 'di TututututuTTE le categorie... eiie...\nNon avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA';
+    compose(rg) {
+      const adj = ['imperturbabile', 'pensieroso', 'vigile', 'sereno', 'immobile'].sort(() => rg() - 0.5).slice(0, 2);
+      const place = ['Avvistato al terzo piano, sempre sullo stesso balcone.', 'Presente ogni mattina, prima ancora del giornalaio.', 'Si ferma a guardare il traffico da prima che esistesse il semaforo.'];
+      const curio = ['Giudica in silenzio il modo in cui parcheggiate.', 'Ha un parere su tutto e non gli serve che glielo chiediate.', 'Con le braccia incrociate sembra dire: "ai miei tempi".', 'Se lo salutate, annuisce. Una volta sola.'];
+      return `Un pelato al balcone ${adj[0]} e ${adj[1]}. ${pick(rg, place)} ${pick(rg, curio)}`;
     },
     draw(ctx, c, rg) {
       rect(ctx, '#e5e7eb', -24, -28, 48, 50, 8); rect(ctx, '#cbd5e1', -24, -28, 10, 50, 4);
@@ -157,6 +160,10 @@
       line(ctx, '#e0ac81', 9, [[-26, -10], [24, -22]]); line(ctx, '#e0ac81', 9, [[26, -10], [-24, -22]]); ell(ctx, '#d99a6d', -26, -10, 6, 6); ell(ctx, '#d99a6d', 26, -10, 6, 6);
       rect(ctx, '#64748b', -58, 34, 116, 9, 2); rect(ctx, '#94a3b8', -60, 0, 120, 6, 3);
       for (let i = -52; i <= 52; i += 13) rect(ctx, '#94a3b8', i - 2, 6, 4, 28); } };
+  // Descrizioni scritte a mano (il disegno resta quello generato dalla parola).
+  const FIXED_TEXT = {
+    IniinI: 'di TututututuTTE le categorie... eiie...\nNon avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA',
+  };
   const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IliilI: BALCONY };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
@@ -187,7 +194,7 @@
     const adjs = ADJ.slice().sort(() => rg() - 0.5).slice(0, 2).map((a) => a[variant.g]);
     const part = pick(rg, PARTICIPLES)[variant.g];
     const lenInfo = M.lenInfo(word.length);
-    const text = special && special.compose ? special.compose(rg) : `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special && special.curio ? special.curio : CURIO[cat])}`;
+    const text = FIXED_TEXT[word] || (special && special.compose ? special.compose(rg) : `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special && special.curio ? special.curio : CURIO[cat])}`);
     return {
       cat, variant, color, text, tip: special ? special.tip : TIPS[cat], seedKey: word,
       rarity: RARITY[word.length][0], stars: RARITY[word.length][1], weight: WEIGHT[word.length], points: lenInfo.base, noun: variant.noun,
