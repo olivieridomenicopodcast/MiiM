@@ -208,6 +208,7 @@
     show(`<div class="card narrow col">
       <h2>${esc(s.title || 'Turno finito!')}</h2>
       ${s.record ? '<p style="color:#f5c518;font-weight:700">🏆 Nuovo record!</p>' : ''}
+      ${s.unlocked ? '<p style="color:#7cfc9a;font-weight:700">🔓 Hai sbloccato le altre modalità: Dominò, Fiume e Mercatino!</p>' : ''}
       <div class="stat"><span>Punti</span><b>${s.score}</b></div>
       <div class="stat"><span>Record</span><b>${s.best}</b></div>
       <div class="stat"><span>${esc(s.savedLabel || 'Rifiuti smistati')}</span><b>${s.saved}</b></div>
@@ -221,6 +222,9 @@
     </div>`);
   }
 
+  // Le altre modalità si sbloccano dopo aver finito almeno un turno del nastro.
+  const modesUnlocked = (slot) => slot.stats.runs >= 1;
+
   // Scelta della modalità di gioco per un salvataggio.
   function modePicker(id) {
     const slot = M.Storage.get(id);
@@ -232,8 +236,9 @@
       <h2>Come vuoi giocare, ${esc(slot.character.name)}? <small style="color:#a9b4c2;font-weight:400">seme ${esc(slot.seed)}</small></h2>
       ${M.MODES.map((m) => {
         const best = m.id === 'nastro' ? st.best : (st.modeBest || {})[m.id] || 0;
-        return `<button class="${m.id === 'nastro' ? 'big' : 'big alt'}" data-act="mode" data-id="${id}" data-mode="${m.id}" style="text-align:left">
-          ${esc(m.name)}${m.id === 'nastro' && slot.run ? ' · <span style="color:#f5c518">continua il turno</span>' : ''}<br><small style="font-weight:400">${esc(m.desc)} · record ${best}</small></button>`;
+        const locked = m.id !== 'nastro' && !modesUnlocked(slot);
+        return `<button class="${m.id === 'nastro' ? 'big' : 'big alt'}" data-act="mode" data-id="${id}" data-mode="${m.id}" style="text-align:left" ${locked ? 'disabled' : ''}>
+          ${locked ? '🔒 ' : ''}${esc(m.name)}${m.id === 'nastro' && slot.run ? ' · <span style="color:#f5c518">continua il turno</span>' : ''}<br><small style="font-weight:400">${locked ? 'Si sblocca finendo almeno un turno del nastro.' : `${esc(m.desc)} · record ${best}`}</small></button>`;
       }).join('')}
       <button class="alt" data-act="menu">Indietro</button>
     </div>`);
@@ -249,6 +254,7 @@
     if (!slot) return menu();
     endGame();
     M.Storage.setLast(id);
+    if (mode !== 'nastro' && !modesUnlocked(slot)) return modePicker(id);
     currentMode = mode;
     if (mode !== 'nastro') {
       const def = M.MODES.find((m) => m.id === mode);

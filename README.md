@@ -17,6 +17,7 @@ Nessuna build: apri `index.html` nel browser (HTML + Canvas + JS puro).
 
 ## Modalità
 - **Il nastro**: la modalità principale.
+- (Le modalità qui sotto si sbloccano finendo almeno un turno del nastro.)
 - **Dominò dei palindromi**: attacca le parole per lettera o per colore contro Gino.
 - **Il fiume dei riflessi**: raccogli i rifiuti veri, evita le illusioni (riflesso diverso).
 - **Mercatino dell'usato**: compra, contratta e rivendi in 12 clienti.

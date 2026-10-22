@@ -506,7 +506,7 @@
       slot.run = null;
       this.hooks.persist();
       M.sfx('over');
-      this.hooks.onGameOver({ score: total, saved: r.saved, newWords: r.newWords, record, time: r.t, best: slot.stats.best });
+      this.hooks.onGameOver({ score: total, saved: r.saved, newWords: r.newWords, record, time: r.t, best: slot.stats.best, unlocked: slot.stats.runs === 1 });
     }
 
     // ---------- rendering ----------
