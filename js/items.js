@@ -143,6 +143,24 @@
       for (let i = -24; i <= 20; i += 12) rect(ctx, '#b91c1c', i, -46, 6, 16);
       rect(ctx, '#fef3c7', -26, -6, 52, 30, 3); ell(ctx, '#ef4444', 0, 9, 9, 9); poly(ctx, '#22c55e', [[-3, 0], [0, -4], [3, 0], [8, -1], [3, 3]]);
       rect(ctx, W, -28, -24, 6, 58, 3); } };
+  const BALCONY = {
+    noun: 'pelato al balcone', art: 'Un', g: 0,
+    tip: 'Non si ricicla: va nell\'indifferenziato, con un saluto rispettoso.',
+    compose(rg) {
+      const adj = ['imperturbabile', 'pensieroso', 'vigile', 'sereno', 'immobile'].sort(() => rg() - 0.5).slice(0, 2);
+      const place = ['Avvistato al terzo piano, sempre sullo stesso balcone.', 'Presente ogni mattina, prima ancora del giornalaio.', 'Si ferma a guardare il traffico da prima che esistesse il semaforo.'];
+      const curio = ['Giudica in silenzio il modo in cui parcheggiate.', 'Ha un parere su tutto e non gli serve che glielo chiediate.', 'Con le braccia incrociate sembra dire: "ai miei tempi".', 'Se lo salutate, annuisce. Una volta sola.'];
+      return `Un pelato al balcone ${adj[0]} e ${adj[1]}. ${pick(rg, place)} ${pick(rg, curio)}`;
+    },
+    draw(ctx, c, rg) {
+      rect(ctx, '#e5e7eb', -24, -28, 48, 50, 8); rect(ctx, '#cbd5e1', -24, -28, 10, 50, 4);
+      rect(ctx, '#e0ac81', -4, -34, 8, 10); ell(ctx, '#e0ac81', 0, -48, 17, 19); ell(ctx, '#e0ac81', -17, -47, 4, 6); ell(ctx, '#e0ac81', 17, -47, 4, 6);
+      ell(ctx, 'rgba(255,255,255,.5)', -6, -58, 6, 3); line(ctx, '#3b2a1c', 2.6, [[-10, -53], [-3, -51]]); line(ctx, '#3b2a1c', 2.6, [[10, -53], [3, -51]]);
+      ell(ctx, '#1f2937', -6, -48, 2, 2); ell(ctx, '#1f2937', 6, -48, 2, 2); line(ctx, '#7a3b2e', 2, [[-5, -38], [5, -38]]);
+      line(ctx, '#e0ac81', 9, [[-26, -10], [24, -22]]); line(ctx, '#e0ac81', 9, [[26, -10], [-24, -22]]); ell(ctx, '#d99a6d', -26, -10, 6, 6); ell(ctx, '#d99a6d', 26, -10, 6, 6);
+      rect(ctx, '#64748b', -58, 34, 116, 9, 2); rect(ctx, '#94a3b8', -60, 0, 120, 6, 3);
+      for (let i = -52; i <= 52; i += 13) rect(ctx, '#94a3b8', i - 2, 6, 4, 28); } };
+  const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IliilI: BALCONY };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
     'dopo una festa di compleanno', 'nel garage di un nonno', 'sul nastro, di martedì', 'dentro uno zaino dimenticato', 'accanto a una macchinetta del caffè'];
@@ -166,13 +184,13 @@
     const cat = M.categoryOf(word);
     const rg = M.rngFor('scheda', word);
     const def = ITEMS[cat];
-    const special = word in M.SPECIAL ? SAUCE : null;
+    const special = SPECIAL_ITEMS[word] || null;
     const variant = special || def.v[Math.floor(rg() * def.v.length)];
     const color = pick(rg, def.colors);
     const adjs = ADJ.slice().sort(() => rg() - 0.5).slice(0, 2).map((a) => a[variant.g]);
     const part = pick(rg, PARTICIPLES)[variant.g];
     const lenInfo = M.lenInfo(word.length);
-    const text = `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special ? special.curio : CURIO[cat])}`;
+    const text = special && special.compose ? special.compose(rg) : `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special && special.curio ? special.curio : CURIO[cat])}`;
     return {
       cat, variant, color, text, tip: special ? special.tip : TIPS[cat], seedKey: word,
       rarity: RARITY[word.length][0], stars: RARITY[word.length][1], weight: WEIGHT[word.length], points: lenInfo.base, noun: variant.noun,
