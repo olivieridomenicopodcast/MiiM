@@ -97,7 +97,7 @@
             <button class="alt" data-act="pick" data-key="gender" data-v="f">Femmina</button></div>
           <label>Capelli</label><div class="row">${M.HAIRS.map((h) => `<button class="alt" data-act="pick" data-key="hair" data-v="${h.id}">${h.name}</button>`).join('')}</div>
           <label>Colore capelli</label><div class="row">${swatches('hairColor', M.HAIR_COLORS)}</div>
-          <label>Maglia</label><div class="row">${swatches('shirt', M.SHIRTS)}</div>
+          <label>Giubbotto catarifrangente</label><div class="row">${swatches('shirt', M.SHIRTS)}</div>
           <label>Pelle</label><div class="row">${swatches('skin', M.SKINS)}</div>
         </div>
         <div class="col"><canvas id="prev" width="190" height="260"></canvas>
@@ -205,6 +205,7 @@
     });
     game.start();
     M.game = game;
+    fit();
   }
 
   function endGame() {
@@ -292,6 +293,19 @@
   });
   document.getElementById('tAct').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.press(); });
   document.getElementById('tPause').addEventListener('pointerdown', (e) => { e.preventDefault(); pause(); });
+
+  // Adatta il canvas allo schermo e passa dal layout orizzontale a quello verticale.
+  const stage = document.getElementById('stage');
+  function fit() {
+    const portrait = window.innerHeight > window.innerWidth;
+    if (game) game.relayout(portrait);
+    const W = game ? game.W : 960, H = game ? game.H : 540;
+    const reserve = touch.hidden ? 8 : touch.offsetHeight + 16;
+    stage.style.width = Math.min(window.innerWidth, ((window.innerHeight - reserve) * W) / H) + 'px';
+    stage.style.aspectRatio = `${W} / ${H}`;
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
 
   window.addEventListener('beforeunload', () => game && !game.over && game.persist());
   document.addEventListener('visibilitychange', () => { if (document.hidden && game && !game.over && !game.paused) pause(); });

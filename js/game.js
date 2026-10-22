@@ -2,10 +2,6 @@
 (function () {
   const M = (window.MiiM = window.MiiM || {});
 
-  const W = 960, H = 540;
-  const WALL_H = 320, BELT_TOP = 430, WALK_Y = 432;
-  const BIN_W = 110;
-  const binX = (i) => 90 + i * 130;
   const MAX_ERRORS = 15;
   const HELPER_AT = [300, 1200, 3000]; // punteggi che sbloccano i colleghi
   const HELPER_NAMES = ['Gino', 'Marta', 'Pino', 'Lia', 'Otto', 'Anna', 'Ada', 'Bob', 'Ele', 'Ivo'];
@@ -18,13 +14,8 @@
       this.canvas = canvas;
       this.slot = slot;
       this.hooks = hooks;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
       this.ctx = canvas.getContext('2d');
-      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.ctx.font = CHAR_FONT;
-      this.charW = this.ctx.measureText('M').width;
+      this.setLayout(window.innerHeight > window.innerWidth);
       this.keys = new Set();
       this.actQ = false;
       this.paused = false;
@@ -36,6 +27,41 @@
       this.autosave = 0;
       this.onKeyDown = (e) => this.keyDown(e);
       this.onKeyUp = (e) => this.keys.delete(this.keyName(e));
+    }
+
+    // Layout: orizzontale 960x540 con le casse in fila; verticale 540x560 con casse più strette.
+    setLayout(portrait) {
+      const L = portrait
+        ? { W: 540, H: 560, WALL_H: 225, BELT_TOP: 390, WALK_Y: 380, binS: 0.7, binTop: 100, binDX: 77, binX0: 38.5, kx: 0.65 }
+        : { W: 960, H: 540, WALL_H: 320, BELT_TOP: 430, WALK_Y: 432, binS: 1, binTop: 148, binDX: 130, binX0: 90, kx: 1 };
+      const old = this.W;
+      this.portrait = portrait;
+      Object.assign(this, L);
+      this.BIN_W = 110 * L.binS;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      this.canvas.width = this.W * dpr;
+      this.canvas.height = this.H * dpr;
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.ctx.font = CHAR_FONT;
+      this.charW = this.ctx.measureText('M').width;
+      return old && old !== this.W ? this.W / old : 1;
+    }
+
+    // Cambio orientamento a partita in corso: riscala le posizioni orizzontali.
+    relayout(portrait) {
+      if (portrait === this.portrait) return false;
+      const k = this.setLayout(portrait);
+      const r = this.run;
+      if (r) {
+        r.player.x *= k;
+        for (const w of r.words) w.x *= k;
+        for (const h of r.helpers) h.x *= k;
+      }
+      return true;
+    }
+
+    binX(i) {
+      return this.binX0 + i * this.binDX;
     }
 
     plateW(len) {
@@ -63,7 +89,7 @@
       return {
         t: 0, score: 0, streak: 0, errors: 0, saved: 0, newWords: 0,
         spawnIndex: 0, spawnIn: 1.2, words: [], wid: 1,
-        player: { x: W / 2, carry: null, facing: 1, phase: 0, moving: false },
+        player: { x: this.W / 2, carry: null, facing: 1, phase: 0, moving: false },
         helpers: [],
       };
     }
@@ -80,14 +106,14 @@
         const mk = (o) => {
           const text = String(o.text);
           if (!/^[A-Za-z]{4,8}$/.test(text) || text.length % 2 || !M.isPalindrome(text)) throw 0;
-          return { id: r.wid++, text, len: text.length, cat: M.categoryOf(this.slot.seed, text), x: num(o.x, W + 50, -50, 3000), claim: null };
+          return { id: r.wid++, text, len: text.length, cat: M.categoryOf(this.slot.seed, text), x: num(o.x, this.W + 50, -50, 3000), claim: null };
         };
         r.words = s.words.slice(0, 60).map(mk);
-        r.player.x = num(s.player.x, W / 2, 30, W - 30);
+        r.player.x = num(s.player.x, this.W / 2, 30, this.W - 30);
         r.player.carry = s.player.carry ? mk(s.player.carry) : null;
         r.helpers = s.helpers.slice(0, 3).map((h, i) => ({
           name: String(h.name || HELPER_NAMES[i]).slice(0, 10), look: this.helperLook(i),
-          x: num(h.x, 100, 30, W - 30), carry: h.carry ? mk(h.carry) : null,
+          x: num(h.x, 100, 30, this.W - 30), carry: h.carry ? mk(h.carry) : null,
           target: null, wrong: false, facing: 1, phase: 0, moving: false, cd: 0,
         }));
         return r;
@@ -172,7 +198,7 @@
       const r = this.run, slot = this.slot;
       r.t += dt;
       this.level = Math.floor(r.t / 20);
-      this.belt = Math.min(190, 60 + this.level * 9);
+      this.belt = Math.min(190, 60 + this.level * 9) * this.kx;
       this.beltOff = (this.beltOff + this.belt * dt) % 40;
 
       r.spawnIn -= dt;
@@ -182,7 +208,7 @@
         w.x -= this.belt * dt;
         if (w.x < 24) {
           r.words.splice(r.words.indexOf(w), 1);
-          this.penalty(w, 'Persa!', w.x + 20, BELT_TOP);
+          this.penalty(w, 'Persa!', w.x + 20, this.BELT_TOP);
         }
       }
 
@@ -193,7 +219,7 @@
       if (dir) {
         p.facing = dir;
         const mult = p.carry ? M.lenInfo(p.carry.len).carry : 1;
-        p.x = clamp(p.x + dir * PLAYER_SPEED * mult * dt, 30, W - 30);
+        p.x = clamp(p.x + dir * PLAYER_SPEED * this.kx * mult * dt, 30, this.W - 30);
         p.phase += dt * 11 * (p.carry ? M.lenInfo(p.carry.len).carry : 1);
       }
       if (this.actQ) {
@@ -228,7 +254,7 @@
       r.spawnIndex++;
       r.spawnIn = Math.max(0.9, 3.2 - this.level * 0.2) * (0.75 + rg() * 0.5);
       const pw = this.plateW(wd.len);
-      let x = W + pw / 2 + 10;
+      let x = this.W + pw / 2 + 10;
       for (const o of r.words) x = Math.max(x, o.x + (this.plateW(o.len) + pw) / 2 + 14);
       r.words.push({ id: r.wid++, text: wd.text, len: wd.len, cat: wd.cat, x, claim: null });
     }
@@ -247,7 +273,7 @@
         }
         const w = p.carry;
         p.carry = null;
-        this.drop(w, i, p.x, WALK_Y - 60, true);
+        this.drop(w, i, p.x, this.WALK_Y - 60, true);
       } else {
         let best = null;
         for (const w of r.words) if (this.reachable(w, p.x) && (!best || Math.abs(w.x - p.x) < Math.abs(best.x - p.x))) best = w;
@@ -260,15 +286,15 @@
     }
 
     binUnder(x) {
-      for (let i = 0; i < M.CATS.length; i++) if (Math.abs(x - binX(i)) < BIN_W / 2 + 4) return i;
+      for (let i = 0; i < M.CATS.length; i++) if (Math.abs(x - this.binX(i)) < this.BIN_W / 2 + 4) return i;
       return -1;
     }
 
     drop(w, bin, fx, fy, byPlayer) {
       const r = this.run, slot = this.slot;
-      this.fx.fly.push({ text: w.text, color: M.CATS[w.cat].color, x0: fx, y0: fy, x1: binX(bin), y1: 215, t: 0, dur: 0.28 });
+      this.fx.fly.push({ text: w.text, color: M.CATS[w.cat].color, x0: fx, y0: fy, x1: this.binX(bin), y1: this.binTop + 45 * this.binS, t: 0, dur: 0.28 });
       if (bin !== w.cat) {
-        this.penalty(w, 'Cassa sbagliata!', binX(bin), 190);
+        this.penalty(w, 'Cassa sbagliata!', this.binX(bin), this.binTop + 20);
         return;
       }
       let pts = M.lenInfo(w.len).base;
@@ -288,7 +314,7 @@
         M.sfx('new');
       }
       M.sfx('ok');
-      this.fx.pops.push({ x: binX(bin), y: 170, text: '+' + pts, color: '#7CFC9A', t: 0 });
+      this.fx.pops.push({ x: this.binX(bin), y: this.binTop, text: '+' + pts, color: '#7CFC9A', t: 0 });
     }
 
     mult() {
@@ -302,7 +328,7 @@
       r.streak = 0;
       r.errors++;
       M.sfx('bad');
-      this.fx.pops.push({ x: clamp(x, 40, W - 40), y: y || 300, text: `${why} -${pts}`, color: '#ff6b6b', t: 0 });
+      this.fx.pops.push({ x: clamp(x, 40, this.W - 40), y: y || 300, text: `${why} -${pts}`, color: '#ff6b6b', t: 0 });
     }
 
     toast(text) {
@@ -325,7 +351,7 @@
       const look = this.helperLook(i);
       r.helpers.push({
         name: HELPER_NAMES[(M.xmur3(this.slot.seed + 'hn' + i)() % HELPER_NAMES.length)], look,
-        x: W - 40, carry: null, target: null, wrong: false, facing: -1, phase: 0, moving: false, cd: 0,
+        x: this.W - 40, carry: null, target: null, wrong: false, facing: -1, phase: 0, moving: false, cd: 0,
       });
       this.toast(`Nuovo collega: ${r.helpers[i].name} ti dà una mano!`);
       M.sfx('new');
@@ -339,12 +365,12 @@
       if (h.carry) {
         // sbaglia cassa ogni tanto (8%), deciso al momento della presa
         const bin = h.wrong ? (h.carry.cat + 1) % M.CATS.length : h.carry.cat;
-        goal = binX(bin);
+        goal = this.binX(bin);
         if (Math.abs(h.x - goal) < 6 && h.cd <= 0) {
           const w = h.carry;
           h.carry = null;
           h.cd = 0.4;
-          this.drop(w, bin, h.x, WALK_Y - 60, false);
+          this.drop(w, bin, h.x, this.WALK_Y - 60, false);
           goal = null;
         }
       } else if (h.cd <= 0) {
@@ -379,7 +405,7 @@
         const d = goal - h.x;
         if (Math.abs(d) > 4) {
           h.facing = Math.sign(d);
-          h.x = clamp(h.x + Math.sign(d) * Math.min(Math.abs(d), HELPER_SPEED * mult * dt), 30, W - 30);
+          h.x = clamp(h.x + Math.sign(d) * Math.min(Math.abs(d), HELPER_SPEED * this.kx * mult * dt), 30, this.W - 30);
           h.moving = true;
           h.phase += dt * 10;
         }
@@ -388,7 +414,7 @@
 
     // tempo stimato perché l'aiutante raggiunga il rifiuto (che scorre verso sinistra)
     interceptTime(h, w) {
-      const v = HELPER_SPEED;
+      const v = HELPER_SPEED * this.kx;
       const dx = w.x - h.x;
       if (dx >= 0) return dx / (v + this.belt);
       return v > this.belt ? -dx / (v - this.belt) : Infinity;
@@ -415,16 +441,16 @@
       const under = carrying ? this.binUnder(r.player.x) : -1;
       for (let i = 0; i < M.CATS.length; i++) this.drawBin(ctx, i, i === under);
       r.helpers.forEach((h) => {
-        M.drawPerson(ctx, h.x, WALK_Y - 2, h.look, { scale: 1.2, facing: h.facing, phase: h.phase, moving: h.moving, carry: !!h.carry, name: h.name });
+        M.drawPerson(ctx, h.x, this.WALK_Y - 2, h.look, { scale: 1.2, facing: h.facing, phase: h.phase, moving: h.moving, carry: !!h.carry, name: h.name });
       });
       const p = r.player;
-      M.drawPerson(ctx, p.x, WALK_Y, this.slot.character, { scale: 1.3, facing: p.facing, phase: p.phase, moving: p.moving, carry: carrying, name: this.slot.character.name });
+      M.drawPerson(ctx, p.x, this.WALK_Y, this.slot.character, { scale: 1.3, facing: p.facing, phase: p.phase, moving: p.moving, carry: carrying, name: this.slot.character.name });
       this.drawBelt(ctx);
       let near = null;
       if (!carrying) for (const w of r.words) if (this.reachable(w, p.x) && (!near || Math.abs(w.x - p.x) < Math.abs(near.x - p.x))) near = w;
-      for (const w of r.words) this.drawPlate(ctx, w.text, w.cat, w.x, BELT_TOP + 8, w === near);
-      for (const h of r.helpers) if (h.carry) this.drawPlate(ctx, h.carry.text, h.carry.cat, h.x, WALK_Y - 60, false);
-      if (carrying) this.drawPlate(ctx, p.carry.text, p.carry.cat, p.x, WALK_Y - 60, false);
+      for (const w of r.words) this.drawPlate(ctx, w.text, w.cat, w.x, this.BELT_TOP + 8, w === near);
+      for (const h of r.helpers) if (h.carry) this.drawPlate(ctx, h.carry.text, h.carry.cat, h.x, this.WALK_Y - 60, false);
+      if (carrying) this.drawPlate(ctx, p.carry.text, p.carry.cat, p.x, this.WALK_Y - 60, false);
       for (const a of this.fx.fly) {
         const k = a.t / a.dur;
         this.drawPlate(ctx, a.text, M.CATS.findIndex((c) => c.color === a.color), a.x0 + (a.x1 - a.x0) * k, a.y0 + (a.y1 - a.y0) * k - Math.sin(k * Math.PI) * 40, false, 1 - k * 0.4);
@@ -444,84 +470,86 @@
     }
 
     drawBackground(ctx) {
-      const g = ctx.createLinearGradient(0, 0, 0, WALL_H);
+      const g = ctx.createLinearGradient(0, 0, 0, this.WALL_H);
       g.addColorStop(0, '#2c3744');
       g.addColorStop(1, '#3b4757');
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, WALL_H);
+      ctx.fillRect(0, 0, this.W, this.WALL_H);
       ctx.strokeStyle = 'rgba(255,255,255,.05)';
       ctx.lineWidth = 2;
-      for (let x = 0; x < W; x += 60) {
+      for (let x = 0; x < this.W; x += 60) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, WALL_H);
+        ctx.lineTo(x, this.WALL_H);
         ctx.stroke();
       }
       ctx.fillStyle = 'rgba(0,0,0,.25)';
-      ctx.fillRect(0, WALL_H - 8, W, 8);
-      const f = ctx.createLinearGradient(0, WALL_H, 0, H);
+      ctx.fillRect(0, this.WALL_H - 8, this.W, 8);
+      const f = ctx.createLinearGradient(0, this.WALL_H, 0, this.H);
       f.addColorStop(0, '#4a4f5a');
       f.addColorStop(1, '#2b2e36');
       ctx.fillStyle = f;
-      ctx.fillRect(0, WALL_H, W, H - WALL_H);
+      ctx.fillRect(0, this.WALL_H, this.W, this.H - this.WALL_H);
       ctx.strokeStyle = 'rgba(255,255,255,.06)';
       ctx.lineWidth = 1;
-      for (let y = WALL_H + 30; y < H; y += 36) {
+      for (let y = this.WALL_H + 30; y < this.H; y += 36) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
+        ctx.lineTo(this.W, y);
         ctx.stroke();
       }
     }
 
     drawBin(ctx, i, active) {
-      const c = M.CATS[i], x = binX(i), top = 170, bot = 292;
+      const c = M.CATS[i], x = this.binX(i), sc = this.binS, bot = 122;
       ctx.save();
+      ctx.translate(x, this.binTop);
+      ctx.scale(sc, sc);
       if (active) {
         ctx.shadowColor = '#fff';
         ctx.shadowBlur = 22;
       }
       ctx.fillStyle = c.color;
       ctx.beginPath();
-      ctx.moveTo(x - 50, top + 16);
-      ctx.lineTo(x + 50, top + 16);
-      ctx.lineTo(x + 42, bot);
-      ctx.lineTo(x - 42, bot);
+      ctx.moveTo(-50, 16);
+      ctx.lineTo(50, 16);
+      ctx.lineTo(42, bot);
+      ctx.lineTo(-42, bot);
       ctx.closePath();
       ctx.fill();
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(0,0,0,.18)';
-      for (let k = -1; k <= 1; k++) ctx.fillRect(x + k * 24 - 3, top + 30, 6, bot - top - 42);
+      for (let k = -1; k <= 1; k++) ctx.fillRect(k * 24 - 3, 30, 6, bot - 42);
       ctx.fillStyle = M.shade(c.color, -0.25);
-      M.rr(ctx, x - 56, top + (active ? -4 : 2), 112, 16, 5);
+      M.rr(ctx, -56, active ? -4 : 2, 112, 16, 5);
       ctx.fill();
       ctx.fillStyle = '#10141a';
-      ctx.fillRect(x - 36, top + (active ? 8 : 14), 72, 4);
+      ctx.fillRect(-36, active ? 8 : 14, 72, 4);
       ctx.restore();
-      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.font = `bold ${this.portrait ? 11 : 13}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = active ? '#fff' : c.color;
-      ctx.fillText(c.name, x, bot + 20);
+      ctx.fillText(this.portrait ? c.short : c.name, x, this.binTop + bot * sc + 18);
     }
 
     drawBelt(ctx) {
       ctx.fillStyle = '#17191e';
-      for (let x = 60; x < W; x += 220) ctx.fillRect(x, BELT_TOP + 30, 14, H - BELT_TOP - 30);
+      for (let x = 60; x < this.W; x += 220) ctx.fillRect(x, this.BELT_TOP + 30, 14, this.H - this.BELT_TOP - 30);
       ctx.fillStyle = '#2d3138';
-      ctx.fillRect(0, BELT_TOP, W, 36);
+      ctx.fillRect(0, this.BELT_TOP, this.W, 36);
       ctx.fillStyle = '#3a3f48';
-      ctx.fillRect(0, BELT_TOP, W, 5);
+      ctx.fillRect(0, this.BELT_TOP, this.W, 5);
       ctx.fillStyle = 'rgba(0,0,0,.35)';
-      for (let x = -this.beltOff; x < W; x += 40) ctx.fillRect(x, BELT_TOP + 8, 3, 24);
+      for (let x = -this.beltOff; x < this.W; x += 40) ctx.fillRect(x, this.BELT_TOP + 8, 3, 24);
       const g = ctx.createLinearGradient(0, 0, 90, 0);
       g.addColorStop(0, 'rgba(220,38,38,.65)');
       g.addColorStop(1, 'rgba(220,38,38,0)');
       ctx.fillStyle = g;
-      ctx.fillRect(0, BELT_TOP - 30, 90, 70);
+      ctx.fillRect(0, this.BELT_TOP - 30, 90, 70);
       ctx.fillStyle = '#9ca3af';
       ctx.font = '11px system-ui, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('◀ SCARTO', 6, BELT_TOP + 56);
+      ctx.fillText('◀ SCARTO', 6, this.BELT_TOP + 56);
     }
 
     drawPlate(ctx, text, cat, x, y, hl, alpha) {
@@ -544,37 +572,37 @@
     }
 
     drawHUD(ctx) {
-      const r = this.run;
+      const r = this.run, P = this.portrait;
       ctx.fillStyle = 'rgba(8,10,14,.62)';
-      ctx.fillRect(0, 0, W, 40);
+      ctx.fillRect(0, 0, this.W, P ? 56 : 40);
       ctx.textBaseline = 'middle';
-      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.font = `bold ${P ? 15 : 18}px system-ui, sans-serif`;
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('Punti ' + r.score, 14, 21);
       const m = this.mult();
-      ctx.fillStyle = m > 1 ? '#ffd166' : '#9ca3af';
-      ctx.fillText(`Serie ${r.streak} ×${m}`, 160, 21);
-      ctx.fillStyle = '#9ad1ff';
-      ctx.fillText('Velocità ' + (this.level + 1), 320, 21);
-      ctx.fillStyle = r.errors > MAX_ERRORS - 5 ? '#ff6b6b' : '#e5e7eb';
-      ctx.fillText(`Errori ${r.errors}/${MAX_ERRORS}`, 460, 21);
-      ctx.fillStyle = '#c4b5fd';
-      ctx.fillText('Colleghi ' + r.helpers.length, 610, 21);
+      const errCol = r.errors > MAX_ERRORS - 5 ? '#ff6b6b' : '#e5e7eb';
+      const items = P
+        ? [[10, 16, '#fff', 'Punti ' + r.score], [190, 16, m > 1 ? '#ffd166' : '#9ca3af', `Serie ${r.streak} ×${m}`], [380, 16, errCol, `Errori ${r.errors}/${MAX_ERRORS}`],
+           [10, 40, '#9ad1ff', 'Velocità ' + (this.level + 1)], [190, 40, '#c4b5fd', 'Colleghi ' + r.helpers.length]]
+        : [[14, 21, '#fff', 'Punti ' + r.score], [160, 21, m > 1 ? '#ffd166' : '#9ca3af', `Serie ${r.streak} ×${m}`], [320, 21, '#9ad1ff', 'Velocità ' + (this.level + 1)],
+           [460, 21, errCol, `Errori ${r.errors}/${MAX_ERRORS}`], [610, 21, '#c4b5fd', 'Colleghi ' + r.helpers.length]];
+      for (const [x, y, col, t] of items) {
+        ctx.fillStyle = col;
+        ctx.fillText(t, x, y);
+      }
       ctx.textAlign = 'right';
       ctx.fillStyle = '#9ca3af';
-      ctx.font = '14px system-ui, sans-serif';
-      ctx.fillText('Seme: ' + this.slot.seed, W - 12, 21);
+      ctx.font = P ? '12px system-ui, sans-serif' : '14px system-ui, sans-serif';
+      ctx.fillText('Seme: ' + this.slot.seed, this.W - 10, P ? 40 : 21);
       ctx.textAlign = 'center';
       ctx.font = 'bold 16px system-ui, sans-serif';
       this.fx.toasts.forEach((t, i) => {
         ctx.globalAlpha = clamp(3 - t.t, 0, 1);
         ctx.fillStyle = 'rgba(0,0,0,.6)';
         const tw = ctx.measureText(t.text).width + 24;
-        M.rr(ctx, W / 2 - tw / 2, 50 + i * 30, tw, 26, 13);
+        M.rr(ctx, this.W / 2 - tw / 2, (this.portrait ? 62 : 50) + i * 30, tw, 26, 13);
         ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.fillText(t.text, W / 2, 64 + i * 30);
+        ctx.fillText(t.text, this.W / 2, (this.portrait ? 76 : 64) + i * 30);
       });
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'alphabetic';

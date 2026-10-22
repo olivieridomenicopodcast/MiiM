@@ -62,27 +62,25 @@
     ctx.fill();
     rr(ctx, 0 - swing * 6, -4, 13, 5, 2);
     ctx.fill();
-    // vestito svasato (femmina)
-    if (f) {
-      ctx.fillStyle = shade(shirt, -0.12);
-      ctx.beginPath();
-      ctx.moveTo(-12, -40);
-      ctx.lineTo(12, -40);
-      ctx.lineTo(23, -12);
-      ctx.lineTo(-23, -12);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // busto
-    ctx.fillStyle = shirt;
-    if (f) rr(ctx, -11, -58, 22, 30, 7);
-    else rr(ctx, -15, -58, 30, 34, 6);
+    // busto: maglia da lavoro grigia + giubbotto catarifrangente (colore scelto)
+    const sx = f ? 11 : 14;
+    ctx.fillStyle = '#4b5563';
+    if (f) rr(ctx, -11, -58, 22, 32, 6);
+    else rr(ctx, -14, -58, 28, 34, 6);
     ctx.fill();
+    const vw = f ? 9 : 12;
+    ctx.fillStyle = shirt;
+    rr(ctx, -vw, -57, vw * 2, f ? 30 : 33, 4);
+    ctx.fill();
+    ctx.fillStyle = '#eef2f5';
+    ctx.fillRect(-vw, -44, vw * 2, 4);
+    ctx.fillRect(-vw, -33, vw * 2, 4);
+    ctx.fillRect(-vw + 3, -57, 3, 13);
+    ctx.fillRect(vw - 6, -57, 3, 13);
     // braccia
-    const sx = f ? 12 : 15;
     ctx.lineCap = 'round';
     ctx.lineWidth = 8;
-    ctx.strokeStyle = shirt;
+    ctx.strokeStyle = '#4b5563';
     for (const side of [-1, 1]) {
       const hx = o.carry ? side * 21 : side * (sx + 3) + side * swing * 2;
       const hy = o.carry ? -46 : -32 + (side * swing * 5);
@@ -117,14 +115,18 @@
       ctx.ellipse(-4, -81, 4, 2, -0.4, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (f && ch.hair !== 'calvo') {
-      ctx.fillStyle = '#ff5fa2';
+    if (f) {
+      if (ch.hair === 'corto') {
+        ctx.fillStyle = hairC;
+        ctx.beginPath();
+        ctx.ellipse(-17, -66, 5, 11, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-16, -78, 5, 3);
+      }
+      ctx.fillStyle = '#f2c94c';
       ctx.beginPath();
-      ctx.moveTo(-9, -87); ctx.lineTo(-18, -92); ctx.lineTo(-18, -80); ctx.closePath();
-      ctx.moveTo(-9, -87); ctx.lineTo(0, -92); ctx.lineTo(0, -82); ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(-9, -87, 3, 0, Math.PI * 2);
+      ctx.arc(-12, -67, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
     // viso

@@ -6,7 +6,7 @@ Nessuna build: apri `index.html` nel browser (HTML + Canvas + JS puro).
 
 ## Comandi
 - ← → / A D: muovi · Spazio / E / ↓: prendi o lascia · P / Esc: pausa
-- Su touch compaiono i pulsanti a schermo.
+- Su touch compaiono i pulsanti a schermo; il layout si adatta a schermo orizzontale e verticale.
 
 ## Regole
 - Rifiuti leggeri (frequenti), medi, pesanti (rari); più sono pesanti, più ti rallentano e più valgono.
