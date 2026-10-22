@@ -179,7 +179,7 @@
           <div class="stat"><span>Peso</span><b>${d.weight}</b></div>
           <div class="stat"><span>Valore</span><b>${d.points} punti</b></div>
           <div class="stat"><span>Smistato</span><b>${n} ${n === 1 ? 'volta' : 'volte'}</b></div>
-          <p>${esc(d.text)}</p>
+          <p style="white-space:pre-line">${esc(d.text)}</p>
           <p class="muted"><b>Consiglio:</b> ${esc(d.tip)}</p>
         </div>
       </div>

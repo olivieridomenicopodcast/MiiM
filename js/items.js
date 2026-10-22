@@ -146,11 +146,8 @@
   const BALCONY = {
     noun: 'pelato al balcone', art: 'Un', g: 0,
     tip: 'Non si ricicla: va nell\'indifferenziato, con un saluto rispettoso.',
-    compose(rg) {
-      const adj = ['imperturbabile', 'pensieroso', 'vigile', 'sereno', 'immobile'].sort(() => rg() - 0.5).slice(0, 2);
-      const place = ['Avvistato al terzo piano, sempre sullo stesso balcone.', 'Presente ogni mattina, prima ancora del giornalaio.', 'Si ferma a guardare il traffico da prima che esistesse il semaforo.'];
-      const curio = ['Giudica in silenzio il modo in cui parcheggiate.', 'Ha un parere su tutto e non gli serve che glielo chiediate.', 'Con le braccia incrociate sembra dire: "ai miei tempi".', 'Se lo salutate, annuisce. Una volta sola.'];
-      return `Un pelato al balcone ${adj[0]} e ${adj[1]}. ${pick(rg, place)} ${pick(rg, curio)}`;
+    compose() {
+      return 'Non avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA';
     },
     draw(ctx, c, rg) {
       rect(ctx, '#e5e7eb', -24, -28, 48, 50, 8); rect(ctx, '#cbd5e1', -24, -28, 10, 50, 4);
