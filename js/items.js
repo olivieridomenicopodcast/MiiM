@@ -164,7 +164,25 @@
   const FIXED_TEXT = {
     IniinI: 'di TututututuTTE le categorie... eiie...\nNon avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA',
   };
-  const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IniinI: BALCONY };
+  const YTP = {
+    noun: 'YTP', art: 'Un', g: 0,
+    tip: 'Va nell\'organico, ovviamente. Ascoltare a basso volume.',
+    compose(rg) {
+      const adj = ['incomprensibile', 'rumoroso', 'ripetuto', 'a volume altissimo', 'tritato', 'molto consigliato'].sort(() => rg() - 0.5).slice(0, 2);
+      const place = ['Trovato alle 3 di notte, dopo il quinto video consigliato.', 'Condiviso in chat senza alcuna spiegazione.', 'Scoperto per caso, e poi non si è più smesso.'];
+      const curio = ['Dura 47 secondi e ne sono bastati 10 per perdere la ragione.', 'Contiene lo stesso suono ripetuto 38 volte, e funziona ogni volta.', 'Ha più effetti sonori che parole.', 'Se lo guardi al contrario, ha ancora più senso.'];
+      return `Un YTP ${adj[0]} e ${adj[1]}. ${pick(rg, place)} ${pick(rg, curio)}`;
+    },
+    draw(ctx, c, rg) {
+      rect(ctx, '#111827', -56, -44, 112, 86, 8); rect(ctx, '#1f2937', -50, -38, 100, 64, 4);
+      rect(ctx, '#5b3a1e', -22, 4, 44, 20, 8); rect(ctx, '#6b4423', -16, -8, 32, 16, 7); rect(ctx, '#7a4d2a', -9, -18, 18, 13, 6); poly(ctx, '#7a4d2a', [[-4, -18], [4, -18], [0, -28]]);
+      ell(ctx, '#fff', -6, -2, 3.6, 4); ell(ctx, '#fff', 6, -2, 3.6, 4); ell(ctx, '#111', -6, -1, 1.6, 1.6); ell(ctx, '#111', 6, -1, 1.6, 1.6); line(ctx, '#111', 1.6, [[-4, 7], [4, 7]]);
+      for (let i = 0; i < 5; i++) rect(ctx, ['rgba(239,68,68,.55)', 'rgba(34,211,238,.55)', 'rgba(250,204,21,.5)'][i % 3], -50 + rnd(rg, -6, 6), -36 + i * 12 + rnd(rg, -3, 3), rnd(rg, 30, 90), rnd(rg, 3, 7));
+      for (let y = -38; y < 26; y += 4) rect(ctx, 'rgba(0,0,0,.25)', -50, y, 100, 1);
+      ctx.font = 'bold 20px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ef4444'; ctx.fillText('YTP', -29, -20); ctx.fillStyle = '#22d3ee'; ctx.fillText('YTP', -25, -22); ctx.fillStyle = '#fff'; ctx.fillText('YTP', -27, -21);
+      rect(ctx, '#374151', -50, 32, 100, 5, 2); rect(ctx, '#ef4444', -50, 32, rnd(rg, 30, 80), 5, 2); poly(ctx, '#fff', [[-48, 38], [-48, 44], [-43, 41]].map(([x, y]) => [x, y - 2])); } };
+  const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IniinI: BALCONY, PooP: YTP };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
     'dopo una festa di compleanno', 'nel garage di un nonno', 'sul nastro, di martedì', 'dentro uno zaino dimenticato', 'accanto a una macchinetta del caffè'];
