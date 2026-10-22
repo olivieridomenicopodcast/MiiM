@@ -62,7 +62,11 @@
   }
 
   // Il tipo dipende solo dalla parola (non dal seme), così il Pokédex è valido per tutti i semi.
+  // Parole "speciali": rifiuti con un tipo deciso a mano (SooS e SaaS = barattoli di sugo, quindi vetro).
+  const SPECIAL = { SooS: 2, SaaS: 2 };
+
   function categoryOf(text) {
+    if (text in SPECIAL) return SPECIAL[text];
     return xmur3('cat#' + text.toLowerCase())() % CATS.length;
   }
 
@@ -99,5 +103,5 @@
     return s;
   }
 
-  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, categoryOf, isPalindrome, randomSeed });
+  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, categoryOf, SPECIAL, isPalindrome, randomSeed });
 })();

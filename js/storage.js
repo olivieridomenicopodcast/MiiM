@@ -16,6 +16,8 @@
     }
     if (!db || !Array.isArray(db.slots)) db = { slots: [], last: null, settings: { mute: false } };
     db.settings = db.settings || { mute: false };
+    // Il tipo è sempre ricalcolato (alcune parole hanno un tipo speciale).
+    for (const [w, d] of Object.entries(db.dex || {})) if (d && typeof d === 'object') d.cat = M.categoryOf(w);
     // Il Pokédex è unico per tutti i semi; migra quelli per-salvataggio delle versioni precedenti.
     if (!db.dex || typeof db.dex !== 'object') db.dex = {};
     for (const s of db.slots) {

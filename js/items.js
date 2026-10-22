@@ -132,6 +132,17 @@
       ] },
   ];
 
+  // Rifiuti speciali, con disegno e descrizione fatti apposta.
+  const SAUCE = {
+    noun: 'barattolo di sugo', art: 'Un', g: 0,
+    curio: ['Ha ancora un po\' di sugo sul fondo: la nonna dice che si può usare.', 'Il coperchio fa "pop" ogni volta, senza eccezioni.', 'Un tempo condiva una domenica memorabile.', 'Rosso fuori, rosso dentro.'],
+    tip: 'Svuota e sciacqua: il vetro va nella cassa del vetro; il coperchio di metallo, a parte.',
+    draw(ctx, c, rg) {
+      rect(ctx, 'rgba(255,255,255,.25)', -34, -30, 68, 72, 14); rect(ctx, '#dc2626', -34, -8, 68, 50, 14); rect(ctx, '#dc2626', -34, -8, 68, 20);
+      rect(ctx, '#b91c1c', -34, 30, 68, 12, 10); rect(ctx, '#e5e7eb', -30, -46, 60, 16, 4);
+      for (let i = -24; i <= 20; i += 12) rect(ctx, '#b91c1c', i, -46, 6, 16);
+      rect(ctx, '#fef3c7', -26, -6, 52, 30, 3); ell(ctx, '#ef4444', 0, 9, 9, 9); poly(ctx, '#22c55e', [[-3, 0], [0, -4], [3, 0], [8, -1], [3, 3]]);
+      rect(ctx, W, -28, -24, 6, 58, 3); } };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
     'dopo una festa di compleanno', 'nel garage di un nonno', 'sul nastro, di martedì', 'dentro uno zaino dimenticato', 'accanto a una macchinetta del caffè'];
@@ -155,14 +166,15 @@
     const cat = M.categoryOf(word);
     const rg = M.rngFor('scheda', word);
     const def = ITEMS[cat];
-    const variant = def.v[Math.floor(rg() * def.v.length)];
+    const special = word in M.SPECIAL ? SAUCE : null;
+    const variant = special || def.v[Math.floor(rg() * def.v.length)];
     const color = pick(rg, def.colors);
     const adjs = ADJ.slice().sort(() => rg() - 0.5).slice(0, 2).map((a) => a[variant.g]);
     const part = pick(rg, PARTICIPLES)[variant.g];
     const lenInfo = M.lenInfo(word.length);
-    const text = `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, CURIO[cat])}`;
+    const text = `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special ? special.curio : CURIO[cat])}`;
     return {
-      cat, variant, color, text, tip: TIPS[cat], seedKey: word,
+      cat, variant, color, text, tip: special ? special.tip : TIPS[cat], seedKey: word,
       rarity: RARITY[word.length][0], stars: RARITY[word.length][1], weight: WEIGHT[word.length], points: lenInfo.base, noun: variant.noun,
     };
   }
