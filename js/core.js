@@ -62,8 +62,8 @@
   }
 
   // Il tipo dipende solo dalla parola (non dal seme), così il Pokédex è valido per tutti i semi.
-  // Parole "speciali": rifiuti con un tipo deciso a mano (SooS e SaaS = barattoli di sugo, quindi vetro; IliilI = il pelato al balcone, indifferenziato).
-  const SPECIAL = { SooS: 2, SaaS: 2, IliilI: 6 };
+  // Parole "speciali": rifiuti con un tipo deciso a mano (SooS e SaaS = barattoli di sugo, quindi vetro; IniinI = il pelato al balcone, indifferenziato).
+  const SPECIAL = { SooS: 2, SaaS: 2, IniinI: 6 };
 
   function categoryOf(text) {
     if (text in SPECIAL) return SPECIAL[text];

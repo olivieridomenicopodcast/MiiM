@@ -164,7 +164,7 @@
   const FIXED_TEXT = {
     IniinI: 'di TututututuTTE le categorie... eiie...\nNon avesse... esse.. AGITOH\nQuesto era un problema UN PROBLEMA\nChe oggi uhu... uhu\nNoi crediamo\nInquadauqnI\nAddigngniddA',
   };
-  const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IliilI: BALCONY };
+  const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IniinI: BALCONY };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
     'dopo una festa di compleanno', 'nel garage di un nonno', 'sul nastro, di martedì', 'dentro uno zaino dimenticato', 'accanto a una macchinetta del caffè'];
