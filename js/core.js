@@ -42,13 +42,13 @@
 
   // Lunghezze: le corte sono frequenti, le lunghe rare.
   const LENGTHS = [
-    { len: 4, weight: 0.6, base: 10, carry: 1.0 },
-    { len: 6, weight: 0.3, base: 25, carry: 0.75 },
-    { len: 8, weight: 0.1, base: 60, carry: 0.5 },
+    { len: 4, weight: 0.45, base: 10, carry: 1.0 },
+    { len: 6, weight: 0.35, base: 25, carry: 0.75 },
+    { len: 8, weight: 0.2, base: 60, carry: 0.5 },
   ];
   const lenInfo = (len) => LENGTHS.find((l) => l.len === len) || LENGTHS[0];
 
-  const CONS = 'bbcccddfgglllmmmnnnpppprrrssstttvvz';
+  const CONS = 'bbcccddfgglllmmmnnnpppprrrssstttvvzhhkjqwxy'; // le lettere ripetute escono più spesso; h k j q w x y sono rare
   const VOWS = 'aaeeiiooou';
   const PATTERNS = {
     2: ['CV', 'CV', 'CV', 'VC', 'VV'],
@@ -70,30 +70,55 @@
     return xmur3('cat#' + text.toLowerCase())() % CATS.length;
   }
 
-  // Parola n-esima del seme (deterministica).
-  function makeWord(seed, index) {
-    const rg = rngFor(seed, 'w' + index);
-    const r = rg();
-    let acc = 0;
-    let len = 4;
-    for (const l of LENGTHS) {
-      acc += l.weight;
-      if (r < acc) {
-        len = l.len;
-        break;
+  // Genera una parola per (seme, chiave), evitando quelle in "avoid" (fino a 12 tentativi).
+  function generate(seed, key, avoid) {
+    let word = null;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const rg = rngFor(seed, 'w' + key + (attempt ? ':' + attempt : ''));
+      const r = rg();
+      let acc = 0;
+      let len = 4;
+      for (const l of LENGTHS) {
+        acc += l.weight;
+        if (r < acc) {
+          len = l.len;
+          break;
+        }
       }
+      const pats = PATTERNS[len / 2];
+      const pat = pats[Math.floor(rg() * pats.length)];
+      let h = '';
+      for (const c of pat) {
+        const src = c === 'C' ? CONS : VOWS;
+        h += src[Math.floor(rg() * src.length)];
+      }
+      const low = h + h.split('').reverse().join('');
+      const text = low[0].toUpperCase() + low.slice(1, -1) + low[low.length - 1].toUpperCase();
+      word = { text, len, cat: categoryOf(text) };
+      if (!avoid || !avoid.has(text)) break;
     }
-    const half = len / 2;
-    const pats = PATTERNS[half];
-    const pat = pats[Math.floor(rg() * pats.length)];
-    let h = '';
-    for (const c of pat) {
-      const src = c === 'C' ? CONS : VOWS;
-      h += src[Math.floor(rg() * src.length)];
+    return word;
+  }
+
+  // Parola n-esima del seme (deterministica). Non ripete nessuna delle RECENT parole precedenti.
+  const RECENT = 15;
+  const seqCache = {};
+  function makeWord(seed, index) {
+    if (!seqCache[seed]) {
+      if (Object.keys(seqCache).length > 20) for (const k of Object.keys(seqCache)) delete seqCache[k];
+      seqCache[seed] = [];
     }
-    const low = h + h.split('').reverse().join('');
-    const text = low[0].toUpperCase() + low.slice(1, -1) + low[low.length - 1].toUpperCase();
-    return { text, len, cat: categoryOf(text) };
+    const arr = seqCache[seed];
+    while (arr.length <= index) {
+      const recent = new Set(arr.slice(-RECENT).map((w) => w.text));
+      arr.push(generate(seed, String(arr.length), recent));
+    }
+    return arr[index];
+  }
+
+  // Parola "gemella" legata a un'altra (per i rifiuti accavallati): diversa da quella data.
+  function makeCompanion(seed, index, other) {
+    return generate(seed, 'p' + index, new Set([other]));
   }
 
   function randomSeed() {
@@ -103,5 +128,5 @@
     return s;
   }
 
-  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, categoryOf, SPECIAL, isPalindrome, randomSeed });
+  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, makeCompanion, categoryOf, SPECIAL, isPalindrome, randomSeed });
 })();

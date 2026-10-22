@@ -280,7 +280,7 @@
       const item = { id: r.wid++, text: wd.text, len: wd.len, cat: wd.cat, x: 0, claim: null };
       // ogni tanto due rifiuti arrivano accavallati (deciso dal seme, quindi sempre uguale a parità di seme)
       if (idx >= 6 && idx - r.lastTangle >= TANGLE_MIN_GAP && M.rngFor(seed, 'g' + idx)() < TANGLE_CHANCE) {
-        item.pair = [wd, M.makeWord(seed, 100000 + idx)];
+        item.pair = [wd, M.makeCompanion(seed, idx, wd.text)];
         item.tangled = true;
         item.progress = 0;
         r.lastTangle = idx;
