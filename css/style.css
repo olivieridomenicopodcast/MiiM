@@ -56,3 +56,4 @@ label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
   .card { padding: 12px; max-height: 100%; }
   .sticky { bottom: -12px; }
 }
+.mir { display: inline-block; transform: scaleX(-1); }

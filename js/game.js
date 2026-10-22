@@ -571,7 +571,16 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = col;
-      ctx.fillText(text, x, y + 1);
+      // palindromo = specchio: le lettere della metà destra sono riflesse orizzontalmente
+      const half = text.length / 2;
+      const x0 = x - (text.length * this.charW) / 2;
+      for (let i = 0; i < text.length; i++) {
+        ctx.save();
+        ctx.translate(x0 + (i + 0.5) * this.charW, y + 1);
+        if (i >= half) ctx.scale(-1, 1);
+        ctx.fillText(text[i], 0, 0);
+        ctx.restore();
+      }
       ctx.restore();
     }
 

@@ -7,6 +7,11 @@
   let draft = null;
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Parola palindroma: la metà destra è scritta "a specchio" (lettere riflesse).
+  const mirror = (w) => {
+    const h = w.length / 2;
+    return [...w].map((c, i) => (i >= h ? `<span class="mir">${esc(c)}</span>` : esc(c))).join('');
+  };
   const show = (html) => (root.innerHTML = html);
   const hide = () => (root.innerHTML = '');
   const fmtDate = (t) => new Date(t).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
@@ -150,7 +155,7 @@
       let rows = entries.filter(([, d]) => filter < 0 || d.cat === filter);
       rows.sort((a, b) => (sort === 'len' ? a[1].len - b[1].len || a[0].localeCompare(b[0]) : sort === 'n' ? b[1].n - a[1].n : a[0].localeCompare(b[0])));
       list.innerHTML = rows.length
-        ? rows.map(([w, d]) => `<span class="chip" style="color:${M.CATS[d.cat].color};border-color:${M.CATS[d.cat].color}66">${esc(w)}<small>×${d.n}</small></span>`).join('')
+        ? rows.map(([w, d]) => `<span class="chip" style="color:${M.CATS[d.cat].color};border-color:${M.CATS[d.cat].color}66">${mirror(w)}<small>×${d.n}</small></span>`).join('')
         : '<p>Ancora nessun rifiuto: smistane qualcuno!</p>';
     };
     tabs.addEventListener('click', (e) => {
