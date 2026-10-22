@@ -1,0 +1,102 @@
+// Nucleo: RNG con seme, categorie di rifiuti e generazione procedurale delle parole palindrome.
+(function () {
+  const M = (window.MiiM = window.MiiM || {});
+
+  function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function () {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Generatore indipendente per (seme, chiave): stesso input => stessa sequenza.
+  function rngFor(seed, key) {
+    return mulberry32(xmur3(seed + '|' + key)());
+  }
+
+  const CATS = [
+    { id: 'plastica', name: 'Plastica', color: '#f5c518' },
+    { id: 'carta', name: 'Carta', color: '#3b82f6' },
+    { id: 'vetro', name: 'Vetro', color: '#22c55e' },
+    { id: 'metallo', name: 'Metallo', color: '#cbd5e1' },
+    { id: 'legno', name: 'Legno', color: '#b5733a' },
+    { id: 'organico', name: 'Organico', color: '#ef4444' },
+    { id: 'indifferenziato', name: 'Indifferenziato', color: '#c084fc' },
+  ];
+
+  // Lunghezze: le corte sono frequenti, le lunghe rare.
+  const LENGTHS = [
+    { len: 4, weight: 0.6, base: 10, carry: 1.0 },
+    { len: 6, weight: 0.3, base: 25, carry: 0.75 },
+    { len: 8, weight: 0.1, base: 60, carry: 0.5 },
+  ];
+  const lenInfo = (len) => LENGTHS.find((l) => l.len === len) || LENGTHS[0];
+
+  const CONS = 'bbcccddfgglllmmmnnnpppprrrssstttvvz';
+  const VOWS = 'aaeeiiooou';
+  const PATTERNS = {
+    2: ['CV', 'CV', 'CV', 'VC', 'VV'],
+    3: ['CVC', 'CVV', 'VCV', 'CVC', 'CCV'],
+    4: ['CVCV', 'CVCC', 'CVVC', 'VCVC', 'CCVC', 'CVCV'],
+  };
+
+  function isPalindrome(w) {
+    const s = w.toLowerCase();
+    return s === s.split('').reverse().join('');
+  }
+
+  function categoryOf(seed, text) {
+    return xmur3(seed + '#' + text.toLowerCase())() % CATS.length;
+  }
+
+  // Parola n-esima del seme (deterministica).
+  function makeWord(seed, index) {
+    const rg = rngFor(seed, 'w' + index);
+    const r = rg();
+    let acc = 0;
+    let len = 4;
+    for (const l of LENGTHS) {
+      acc += l.weight;
+      if (r < acc) {
+        len = l.len;
+        break;
+      }
+    }
+    const half = len / 2;
+    const pats = PATTERNS[half];
+    const pat = pats[Math.floor(rg() * pats.length)];
+    let h = '';
+    for (const c of pat) {
+      const src = c === 'C' ? CONS : VOWS;
+      h += src[Math.floor(rg() * src.length)];
+    }
+    const low = h + h.split('').reverse().join('');
+    const text = low[0].toUpperCase() + low.slice(1, -1) + low[low.length - 1].toUpperCase();
+    return { text, len, cat: categoryOf(seed, text) };
+  }
+
+  function randomSeed() {
+    const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)];
+    return s;
+  }
+
+  Object.assign(M, { xmur3, mulberry32, rngFor, CATS, LENGTHS, lenInfo, makeWord, categoryOf, isPalindrome, randomSeed });
+})();

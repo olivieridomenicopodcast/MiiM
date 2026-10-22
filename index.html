@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Smista Palindromi</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="cv" width="960" height="540"></canvas>
+    <div id="ui"></div>
+  </div>
+  <div id="touch" hidden>
+    <button data-k="left" aria-label="Sinistra">◀</button>
+    <button data-k="right" aria-label="Destra">▶</button>
+    <button id="tAct">PRENDI / LASCIA</button>
+    <button id="tPause" aria-label="Pausa">⏸</button>
+  </div>
+  <script src="js/core.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

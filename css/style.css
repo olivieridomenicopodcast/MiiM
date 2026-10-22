@@ -1,0 +1,55 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0b0e13; color: #e8ecf1; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; overflow: hidden; }
+
+#stage { position: relative; width: min(100vw, calc((100vh - 10px) * 16 / 9)); aspect-ratio: 16 / 9; background: #000; }
+#cv { width: 100%; height: 100%; display: block; }
+#ui { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: auto; background: rgba(8, 11, 16, .78); }
+#ui:empty { display: none; }
+
+.card { background: #1a212b; border: 2px solid #34404f; border-radius: 14px; padding: 18px 22px; width: min(94%, 760px); max-height: 96%; overflow: auto; margin: auto; }
+.card.narrow { width: min(94%, 420px); }
+h1 { margin: 0 0 4px; font-size: clamp(22px, 4.2vw, 40px); letter-spacing: .5px; }
+h1 span { color: #f5c518; }
+h2 { margin: 0 0 10px; font-size: 20px; }
+p, .muted { color: #a9b4c2; line-height: 1.45; margin: 6px 0; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.spread { justify-content: space-between; }
+
+button, .btn { font: inherit; font-weight: 600; color: #fff; background: #2f6fed; border: 0; border-radius: 9px; padding: 9px 14px; cursor: pointer; }
+button:hover { filter: brightness(1.12); }
+button.alt { background: #364354; }
+button.danger { background: #b4373d; }
+button.big { padding: 12px 16px; font-size: 17px; }
+button.on { outline: 3px solid #f5c518; }
+button:disabled { opacity: .4; cursor: default; }
+
+input[type=text], select { font: inherit; background: #0f141b; color: #fff; border: 2px solid #34404f; border-radius: 8px; padding: 8px 10px; width: 100%; }
+label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
+
+.sw { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid #0008; }
+.sw.on { outline: 3px solid #fff; }
+.creator { display: grid; grid-template-columns: 1fr 190px; gap: 16px; }
+.creator canvas { background: linear-gradient(#3b4757, #2a303a); border-radius: 10px; width: 100%; }
+
+.slot { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; background: #121821; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.slot b { font-size: 16px; }
+.slot small { color: #8e9bab; display: block; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: #0f1318; border: 2px solid; border-radius: 8px; padding: 3px 8px; font: 700 15px "Courier New", monospace; }
+.chip small { color: #8e9bab; font: 11px system-ui; margin-left: 4px; }
+.tab { padding: 5px 10px; font-size: 13px; }
+.stat { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #2a3442; }
+
+#touch { display: flex; gap: 8px; width: min(100vw, 960px); padding: 0 8px 8px; }
+#touch[hidden] { display: none; }
+#touch button { flex: 1; padding: 18px 8px; font-size: 20px; background: #364354; touch-action: none; user-select: none; }
+#touch #tAct { flex: 3; background: #2f6fed; font-size: 16px; }
+#touch #tPause { flex: .8; }
+
+@media (max-width: 640px) {
+  .creator { grid-template-columns: 1fr; }
+  .card { padding: 12px; }
+}
