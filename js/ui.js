@@ -107,7 +107,7 @@
       <div class="row"><input type="text" id="cSeed" maxlength="40" value="${esc(draft.seed)}" style="flex:1;min-width:140px">
         <button class="alt" data-act="randSeed">🎲 Seme casuale</button></div>
       <p class="muted">Scrivi un seme tuo oppure tira i dadi: stesso seme, stessi rifiuti.</p>
-      <div class="row"><button class="big" data-act="create">Inizia il turno</button><button class="alt" data-act="menu">Indietro</button></div>
+      <div class="row sticky"><button class="big" data-act="create">Inizia il turno</button><button class="alt" data-act="menu">Indietro</button></div>
     </div>`);
     document.getElementById('cName').addEventListener('input', (e) => (draft.name = e.target.value));
     document.getElementById('cSeed').addEventListener('input', (e) => (draft.seed = e.target.value));
