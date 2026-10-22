@@ -15,7 +15,7 @@
       this.slot = slot;
       this.hooks = hooks;
       this.ctx = canvas.getContext('2d');
-      this.setLayout(window.innerHeight > window.innerWidth);
+      this.setLayout();
       this.keys = new Set();
       this.actQ = false;
       this.paused = false;
@@ -30,35 +30,15 @@
       this.onKeyUp = (e) => this.keys.delete(this.keyName(e));
     }
 
-    // Layout: orizzontale 960x540 con le casse in fila; verticale 540x560 con casse più strette.
-    setLayout(portrait) {
-      const L = portrait
-        ? { W: 540, H: 560, WALL_H: 225, BELT_TOP: 390, WALK_Y: 380, binS: 0.7, binTop: 100, binDX: 77, binX0: 38.5, kx: 0.65 }
-        : { W: 960, H: 540, WALL_H: 320, BELT_TOP: 430, WALK_Y: 432, binS: 1, binTop: 148, binDX: 130, binX0: 90, kx: 1 };
-      const old = this.W;
-      this.portrait = portrait;
-      Object.assign(this, L);
-      this.BIN_W = 110 * L.binS;
+    // Layout fisso 960x540.
+    setLayout() {
+      Object.assign(this, { W: 960, H: 540, WALL_H: 320, BELT_TOP: 430, WALK_Y: 432, binS: 1, binTop: 148, binDX: 130, binX0: 90, kx: 1, BIN_W: 110 });
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       this.canvas.width = this.W * dpr;
       this.canvas.height = this.H * dpr;
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.ctx.font = CHAR_FONT;
       this.charW = this.ctx.measureText('M').width;
-      return old && old !== this.W ? this.W / old : 1;
-    }
-
-    // Cambio orientamento a partita in corso: riscala le posizioni orizzontali.
-    relayout(portrait) {
-      if (portrait === this.portrait) return false;
-      const k = this.setLayout(portrait);
-      const r = this.run;
-      if (r) {
-        r.player.x *= k;
-        for (const w of r.words) w.x *= k;
-        for (const h of r.helpers) h.x *= k;
-      }
-      return true;
     }
 
     binX(i) {
@@ -364,7 +344,7 @@
       if (r.score < cost) return this.toast(`Servono ${cost} punti per assumere un collega`);
       r.score -= cost;
       r.spent += cost;
-      this.fx.pops.push({ x: 90, y: this.portrait ? 120 : 90, text: '-' + cost, color: '#ffd166', t: 0 });
+      this.fx.pops.push({ x: 90, y: 90, text: '-' + cost, color: '#ffd166', t: 0 });
       this.addHelper();
     }
 
@@ -549,10 +529,10 @@
       ctx.fillStyle = '#10141a';
       ctx.fillRect(-36, active ? 8 : 14, 72, 4);
       ctx.restore();
-      ctx.font = `bold ${this.portrait ? 11 : 13}px system-ui, sans-serif`;
+      ctx.font = 'bold 13px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = active ? '#fff' : c.color;
-      ctx.fillText(this.portrait ? c.short : c.name, x, this.binTop + bot * sc + 18);
+      ctx.fillText(c.name, x, this.binTop + bot * sc + 18);
     }
 
     drawBelt(ctx) {
@@ -596,8 +576,8 @@
 
     // Riquadro "assumi collega": mostra il costo e quanto manca per poterlo comprare.
     drawHire(ctx) {
-      const r = this.run, n = r.helpers.length, P = this.portrait;
-      const w = P ? 250 : 290, h = 26, x = 10, y = (P ? 56 : 40) + 6;
+      const r = this.run, n = r.helpers.length;
+      const w = 290, h = 26, x = 10, y = 46;
       const cost = HELPER_COST[n];
       this.hirePill = cost === undefined ? null : { x, y, w, h };
       const can = cost !== undefined && r.score >= cost;
@@ -630,18 +610,16 @@
     }
 
     drawHUD(ctx) {
-      const r = this.run, P = this.portrait;
+      const r = this.run;
       ctx.fillStyle = 'rgba(8,10,14,.62)';
-      ctx.fillRect(0, 0, this.W, P ? 56 : 40);
+      ctx.fillRect(0, 0, this.W, 40);
       ctx.textBaseline = 'middle';
-      ctx.font = `bold ${P ? 15 : 18}px system-ui, sans-serif`;
+      ctx.font = 'bold 18px system-ui, sans-serif';
       ctx.textAlign = 'left';
       const m = this.mult();
       const errCol = r.errors > MAX_ERRORS - 5 ? '#ff6b6b' : '#e5e7eb';
-      const items = P
-        ? [[10, 16, '#fff', 'Punti ' + r.score], [190, 16, m > 1 ? '#ffd166' : '#9ca3af', `Serie ${r.streak} ×${m}`], [380, 16, errCol, `Errori ${r.errors}/${MAX_ERRORS}`],
-           [10, 40, '#9ad1ff', 'Velocità ' + (this.level + 1)], [190, 40, '#c4b5fd', 'Colleghi ' + r.helpers.length]]
-        : [[14, 21, '#fff', 'Punti ' + r.score], [160, 21, m > 1 ? '#ffd166' : '#9ca3af', `Serie ${r.streak} ×${m}`], [320, 21, '#9ad1ff', 'Velocità ' + (this.level + 1)],
+      const items =
+        [[14, 21, '#fff', 'Punti ' + r.score], [160, 21, m > 1 ? '#ffd166' : '#9ca3af', `Serie ${r.streak} ×${m}`], [320, 21, '#9ad1ff', 'Velocità ' + (this.level + 1)],
            [460, 21, errCol, `Errori ${r.errors}/${MAX_ERRORS}`], [610, 21, '#c4b5fd', 'Colleghi ' + r.helpers.length]];
       for (const [x, y, col, t] of items) {
         ctx.fillStyle = col;
@@ -651,18 +629,18 @@
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'right';
       ctx.fillStyle = '#9ca3af';
-      ctx.font = P ? '12px system-ui, sans-serif' : '14px system-ui, sans-serif';
-      ctx.fillText('Seme: ' + this.slot.seed, this.W - 10, P ? 40 : 21);
+      ctx.font = '14px system-ui, sans-serif';
+      ctx.fillText('Seme: ' + this.slot.seed, this.W - 10, 21);
       ctx.textAlign = 'center';
       ctx.font = 'bold 16px system-ui, sans-serif';
       this.fx.toasts.forEach((t, i) => {
         ctx.globalAlpha = clamp(3 - t.t, 0, 1);
         ctx.fillStyle = 'rgba(0,0,0,.6)';
         const tw = ctx.measureText(t.text).width + 24;
-        M.rr(ctx, this.W / 2 - tw / 2, (this.portrait ? 96 : 78) + i * 30, tw, 26, 13);
+        M.rr(ctx, this.W / 2 - tw / 2, 78 + i * 30, tw, 26, 13);
         ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.fillText(t.text, this.W / 2, (this.portrait ? 110 : 92) + i * 30);
+        ctx.fillText(t.text, this.W / 2, 92 + i * 30);
       });
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'alphabetic';

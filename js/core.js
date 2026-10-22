@@ -31,13 +31,13 @@
   }
 
   const CATS = [
-    { id: 'plastica', name: 'Plastica', short: 'Plast.', color: '#f5c518' },
-    { id: 'carta', name: 'Carta', short: 'Carta', color: '#3b82f6' },
-    { id: 'vetro', name: 'Vetro', short: 'Vetro', color: '#22c55e' },
-    { id: 'metallo', name: 'Metallo', short: 'Metal.', color: '#cbd5e1' },
-    { id: 'legno', name: 'Legno', short: 'Legno', color: '#b5733a' },
-    { id: 'organico', name: 'Organico', short: 'Organ.', color: '#ef4444' },
-    { id: 'indifferenziato', name: 'Indifferenziato', short: 'Indiff.', color: '#c084fc' },
+    { id: 'plastica', name: 'Plastica', color: '#f5c518' },
+    { id: 'carta', name: 'Carta', color: '#3b82f6' },
+    { id: 'vetro', name: 'Vetro', color: '#22c55e' },
+    { id: 'metallo', name: 'Metallo', color: '#cbd5e1' },
+    { id: 'legno', name: 'Legno', color: '#b5733a' },
+    { id: 'organico', name: 'Organico', color: '#ef4444' },
+    { id: 'indifferenziato', name: 'Indifferenziato', color: '#c084fc' },
   ];
 
   // Lunghezze: le corte sono frequenti, le lunghe rare.

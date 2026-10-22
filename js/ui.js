@@ -298,15 +298,12 @@
   // Adatta il canvas allo schermo e passa dal layout orizzontale a quello verticale.
   const stage = document.getElementById('stage');
   function fit() {
-    const portrait = window.innerHeight > window.innerWidth;
-    if (game) game.relayout(portrait);
-    const W = game ? game.W : 960, H = game ? game.H : 540;
+    const W = 960, H = 540;
     const reserve = touch.hidden ? 8 : touch.offsetHeight + 16;
     stage.style.width = Math.min(window.innerWidth, ((window.innerHeight - reserve) * W) / H) + 'px';
     stage.style.aspectRatio = `${W} / ${H}`;
   }
   window.addEventListener('resize', fit);
-  window.addEventListener('orientationchange', fit);
 
   window.addEventListener('beforeunload', () => game && !game.over && game.persist());
   document.addEventListener('visibilitychange', () => { if (document.hidden && game && !game.over && !game.paused) pause(); });
