@@ -33,10 +33,10 @@
   function help() {
     show(`<div class="card col">
       <h2>Come si gioca</h2>
-      <p><b>Muoviti</b> con ← → (o A / D). <b>Prendi / lascia</b> un rifiuto con Spazio (o E, ↓): devi essere vicino al rifiuto sul nastro, oppure sotto una cassa per lasciarla. <b>Pausa</b>: P o Esc.</p>
+      <p><b>Muoviti</b> con ← → (o A / D). <b>Prendi / lascia</b> un rifiuto con Spazio (o E, ↓), <b>H</b> per assumere un collega: devi essere vicino al rifiuto sul nastro, oppure sotto una cassa per lasciarla. <b>Pausa</b>: P o Esc.</p>
       <p>Il colore indica il tipo di rifiuto: portalo nella cassa dello stesso colore. Ci sono rifiuti leggeri e frequenti, medi, e pesantissimi e rari (ma valgono di più): più è pesante, più vai piano.</p>
       <p>Se un rifiuto cade dal nastro o lo butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 rifiuti di fila giuste il moltiplicatore sale.</p>
-      <p>Raggiungendo certi punteggi arrivano dei <b>colleghi</b> comandati dall'IA che ti aiutano (ogni tanto sbagliano cassa!).</p>
+      <p>Con i punti puoi <b>assumere dei colleghi</b> (fino a 3, costano 300, 1000 e 2500 punti) comandati dall'IA: li compri col tasto H o toccando il riquadro in alto a sinistra, che mostra quanto manca. Ogni tanto sbagliano cassa!</p>
       <p>Ogni rifiuto smistato finisce nel <b>catalogo</b> di quel seme. Lo stesso seme genera sempre gli stessi rifiuti.</p>
       <button data-act="menu">Indietro</button>
     </div>`);
@@ -292,6 +292,7 @@
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => game && game.setKey(k, false));
   });
   document.getElementById('tAct').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.press(); });
+  document.getElementById('tHire').addEventListener('pointerdown', (e) => { e.preventDefault(); if (game) game.hire(); });
   document.getElementById('tPause').addEventListener('pointerdown', (e) => { e.preventDefault(); pause(); });
 
   // Adatta il canvas allo schermo e passa dal layout orizzontale a quello verticale.

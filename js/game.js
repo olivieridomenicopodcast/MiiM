@@ -3,7 +3,7 @@
   const M = (window.MiiM = window.MiiM || {});
 
   const MAX_ERRORS = 15;
-  const HELPER_AT = [300, 1200, 3000]; // punteggi che sbloccano i colleghi
+  const HELPER_COST = [300, 1000, 2500]; // punti per assumere il 1°, 2° e 3° collega
   const HELPER_NAMES = ['Gino', 'Marta', 'Pino', 'Lia', 'Otto', 'Anna', 'Ada', 'Bob', 'Ele', 'Ivo'];
   const PLAYER_SPEED = 260, HELPER_SPEED = 165;
   const CHAR_FONT = 'bold 22px "Courier New", monospace';
@@ -26,6 +26,7 @@
       this.belt = 60;
       this.autosave = 0;
       this.onKeyDown = (e) => this.keyDown(e);
+      this.onPointer = (e) => this.pointer(e);
       this.onKeyUp = (e) => this.keys.delete(this.keyName(e));
     }
 
@@ -73,6 +74,7 @@
       this.run = this.restore(this.slot.run) || this.fresh();
       this.slot.run = null;
       window.addEventListener('keydown', this.onKeyDown);
+      this.canvas.addEventListener('pointerdown', this.onPointer);
       window.addEventListener('keyup', this.onKeyUp);
       this.last = performance.now();
       this.raf = requestAnimationFrame((t) => this.frame(t));
@@ -81,13 +83,14 @@
     stop() {
       cancelAnimationFrame(this.raf);
       window.removeEventListener('keydown', this.onKeyDown);
+      this.canvas.removeEventListener('pointerdown', this.onPointer);
       window.removeEventListener('keyup', this.onKeyUp);
       this.keys.clear();
     }
 
     fresh() {
       return {
-        t: 0, score: 0, streak: 0, errors: 0, saved: 0, newWords: 0,
+        t: 0, score: 0, spent: 0, streak: 0, errors: 0, saved: 0, newWords: 0,
         spawnIndex: 0, spawnIn: 1.2, words: [], wid: 1,
         player: { x: this.W / 2, carry: null, facing: 1, phase: 0, moving: false },
         helpers: [],
@@ -99,7 +102,7 @@
       try {
         const r = this.fresh();
         const num = (v, d, a = 0, b = 1e9) => (Number.isFinite(+v) ? clamp(+v, a, b) : d);
-        r.t = num(s.t, 0); r.score = num(s.score, 0); r.streak = num(s.streak, 0);
+        r.t = num(s.t, 0); r.score = num(s.score, 0); r.spent = num(s.spent, 0); r.streak = num(s.streak, 0);
         r.errors = num(s.errors, 0, 0, MAX_ERRORS - 1); r.saved = num(s.saved, 0);
         r.newWords = num(s.newWords, 0); r.spawnIndex = Math.floor(num(s.spawnIndex, 0));
         r.spawnIn = num(s.spawnIn, 1, 0, 10);
@@ -126,7 +129,7 @@
       const r = this.run;
       const w = (o) => ({ text: o.text, x: Math.round(o.x) });
       return {
-        t: r.t, score: r.score, streak: r.streak, errors: r.errors, saved: r.saved, newWords: r.newWords,
+        t: r.t, score: r.score, spent: r.spent, streak: r.streak, errors: r.errors, saved: r.saved, newWords: r.newWords,
         spawnIndex: r.spawnIndex, spawnIn: r.spawnIn,
         player: { x: r.player.x, carry: r.player.carry ? w(r.player.carry) : null },
         words: r.words.map(w),
@@ -166,12 +169,17 @@
       if (k === 'arrowright' || k === 'd') return 'right';
       if (k === ' ' || k === 'e' || k === 'enter' || k === 'arrowdown' || k === 's' || k === 'arrowup' || k === 'w') return 'act';
       if (k === 'p' || k === 'escape') return 'pause';
+      if (k === 'h') return 'hire';
       return k;
     }
 
     keyDown(e) {
       if (this.over || e.ctrlKey || e.metaKey || e.altKey) return;
       const n = this.keyName(e);
+      if (n === 'hire') {
+        if (!e.repeat && !this.paused) this.hire();
+        return;
+      }
       if (n === 'pause') {
         if (!e.repeat) this.hooks.onPause();
         return;
@@ -229,7 +237,9 @@
 
       r.helpers.forEach((h, i) => this.updateHelper(h, i, dt));
 
-      if (r.helpers.length < HELPER_AT.length && r.score >= HELPER_AT[r.helpers.length]) this.addHelper();
+      const ready = r.helpers.length < HELPER_COST.length && r.score >= HELPER_COST[r.helpers.length];
+      if (ready && !this.hireNotified) this.toast('Puoi assumere un collega! (H o tocca il riquadro)');
+      this.hireNotified = ready;
 
       const f = this.fx;
       for (const a of f.pops) { a.t += dt; a.y -= 28 * dt; }
@@ -346,6 +356,18 @@
       };
     }
 
+    hire() {
+      const r = this.run;
+      if (this.paused || this.over) return;
+      const cost = HELPER_COST[r.helpers.length];
+      if (cost === undefined) return this.toast('La squadra è al completo!');
+      if (r.score < cost) return this.toast(`Servono ${cost} punti per assumere un collega`);
+      r.score -= cost;
+      r.spent += cost;
+      this.fx.pops.push({ x: 90, y: this.portrait ? 120 : 90, text: '-' + cost, color: '#ffd166', t: 0 });
+      this.addHelper();
+    }
+
     addHelper() {
       const r = this.run, i = r.helpers.length;
       const look = this.helperLook(i);
@@ -424,12 +446,13 @@
       const r = this.run, slot = this.slot;
       this.over = true;
       slot.stats.runs++;
-      const record = r.score > slot.stats.best;
-      if (record) slot.stats.best = r.score;
+      const total = r.score + r.spent; // i punti spesi per i colleghi contano nel punteggio finale
+      const record = total > slot.stats.best;
+      if (record) slot.stats.best = total;
       slot.run = null;
       this.hooks.persist();
       M.sfx('over');
-      this.hooks.onGameOver({ score: r.score, saved: r.saved, newWords: r.newWords, record, time: r.t, best: slot.stats.best });
+      this.hooks.onGameOver({ score: total, saved: r.saved, newWords: r.newWords, record, time: r.t, best: slot.stats.best });
     }
 
     // ---------- rendering ----------
@@ -571,6 +594,41 @@
       ctx.restore();
     }
 
+    // Riquadro "assumi collega": mostra il costo e quanto manca per poterlo comprare.
+    drawHire(ctx) {
+      const r = this.run, n = r.helpers.length, P = this.portrait;
+      const w = P ? 250 : 290, h = 26, x = 10, y = (P ? 56 : 40) + 6;
+      const cost = HELPER_COST[n];
+      this.hirePill = cost === undefined ? null : { x, y, w, h };
+      const can = cost !== undefined && r.score >= cost;
+      ctx.save();
+      ctx.fillStyle = 'rgba(8,10,14,.7)';
+      M.rr(ctx, x, y, w, h, 13);
+      ctx.fill();
+      if (cost !== undefined) {
+        ctx.save();
+        M.rr(ctx, x, y, w, h, 13);
+        ctx.clip();
+        ctx.fillStyle = can ? (Math.floor(performance.now() / 400) % 2 ? '#22c55e' : '#16a34a') : '#3b4a63';
+        ctx.fillRect(x, y, w * Math.min(1, r.score / cost), h);
+        ctx.restore();
+      }
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(cost === undefined ? 'Squadra al completo 👷👷👷' : can ? `👷 ASSUMI collega ${n + 1} (−${cost})  [H]` : `👷 Collega ${n + 1}: ${r.score}/${cost} punti`, x + w / 2, y + h / 2 + 1);
+      ctx.restore();
+    }
+
+    // click/tap sul riquadro
+    pointer(e) {
+      const rc = this.canvas.getBoundingClientRect();
+      const x = ((e.clientX - rc.left) * this.W) / rc.width, y = ((e.clientY - rc.top) * this.H) / rc.height;
+      const b = this.hirePill;
+      if (b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) this.hire();
+    }
+
     drawHUD(ctx) {
       const r = this.run, P = this.portrait;
       ctx.fillStyle = 'rgba(8,10,14,.62)';
@@ -589,6 +647,8 @@
         ctx.fillStyle = col;
         ctx.fillText(t, x, y);
       }
+      this.drawHire(ctx);
+      ctx.textBaseline = 'middle';
       ctx.textAlign = 'right';
       ctx.fillStyle = '#9ca3af';
       ctx.font = P ? '12px system-ui, sans-serif' : '14px system-ui, sans-serif';
@@ -599,10 +659,10 @@
         ctx.globalAlpha = clamp(3 - t.t, 0, 1);
         ctx.fillStyle = 'rgba(0,0,0,.6)';
         const tw = ctx.measureText(t.text).width + 24;
-        M.rr(ctx, this.W / 2 - tw / 2, (this.portrait ? 62 : 50) + i * 30, tw, 26, 13);
+        M.rr(ctx, this.W / 2 - tw / 2, (this.portrait ? 96 : 78) + i * 30, tw, 26, 13);
         ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.fillText(t.text, this.W / 2, (this.portrait ? 76 : 64) + i * 30);
+        ctx.fillText(t.text, this.W / 2, (this.portrait ? 110 : 92) + i * 30);
       });
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'alphabetic';

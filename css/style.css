@@ -48,7 +48,7 @@ label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
 #touch[hidden] { display: none; }
 #touch button { flex: 1; padding: 18px 8px; font-size: 20px; background: #364354; touch-action: none; user-select: none; }
 #touch #tAct { flex: 3; background: #2f6fed; font-size: 16px; }
-#touch #tPause { flex: .8; }
+#touch #tPause, #touch #tHire { flex: .8; }
 
 @media (max-width: 640px) {
   .creator { grid-template-columns: 1fr; }
