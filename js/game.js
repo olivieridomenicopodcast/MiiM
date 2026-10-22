@@ -284,7 +284,7 @@
       else {
         slot.dex[w.text] = { cat: w.cat, len: w.len, n: 1 };
         r.newWords++;
-        this.toast('Nuova nel Pokédex: ' + w.text);
+        this.toast('Nuovo nel catalogo: ' + w.text);
         M.sfx('new');
       }
       M.sfx('ok');
@@ -386,7 +386,7 @@
       }
     }
 
-    // tempo stimato perché l'aiutante raggiunga la parola (parola che scorre verso sinistra)
+    // tempo stimato perché l'aiutante raggiunga il rifiuto (che scorre verso sinistra)
     interceptTime(h, w) {
       const v = HELPER_SPEED;
       const dx = w.x - h.x;

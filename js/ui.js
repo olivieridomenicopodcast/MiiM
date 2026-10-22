@@ -1,4 +1,4 @@
-// Interfaccia: menu, creazione personaggio, salvataggi, Pokédex, pausa.
+// Interfaccia: menu, creazione personaggio, salvataggi, catalogo, pausa.
 (function () {
   const M = window.MiiM;
   const root = document.getElementById('ui');
@@ -17,12 +17,12 @@
     const last = M.Storage.last();
     const mute = M.Storage.settings().mute;
     show(`<div class="card narrow col">
-      <h1>Smista <span>Palindromi</span></h1>
-      <p>Prendi le parole dal nastro e portale nella cassa del loro colore. Tutte le parole sono palindrome!</p>
+      <h1>Smista <span>Rifiuti</span></h1>
+      <p>Prendi i rifiuti dal nastro e portali nella cassa del loro colore.</p>
       ${last ? `<button class="big" data-act="continue">▶ Continua<br><small>${esc(last.character.name)} · seme ${esc(last.seed)}</small></button>` : ''}
       <button class="big ${last ? 'alt' : ''}" data-act="new">Nuova partita</button>
       <button class="alt" data-act="saves">Salvataggi (${M.Storage.list().length})</button>
-      <button class="alt" data-act="dexLast" ${last ? '' : 'disabled'}>Pokédex delle parole</button>
+      <button class="alt" data-act="dexLast" ${last ? '' : 'disabled'}>Catalogo dei rifiuti</button>
       <div class="row">
         <button class="alt" data-act="help" style="flex:1">Come si gioca</button>
         <button class="alt" data-act="mute" style="flex:1">Audio: ${mute ? 'OFF' : 'ON'}</button>
@@ -33,11 +33,11 @@
   function help() {
     show(`<div class="card col">
       <h2>Come si gioca</h2>
-      <p><b>Muoviti</b> con ← → (o A / D). <b>Prendi / lascia</b> una parola con Spazio (o E, ↓): devi essere vicino alla parola sul nastro, oppure sotto una cassa per lasciarla. <b>Pausa</b>: P o Esc.</p>
-      <p>Il colore della parola indica il tipo di rifiuto: portala nella cassa dello stesso colore. Parole da 4 lettere sono leggere e frequenti, da 6 più pesanti, da 8 pesantissime e rare (ma valgono di più): più è pesante la parola, più vai piano.</p>
-      <p>Se una parola cade dal nastro o la butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 parole di fila giuste il moltiplicatore sale.</p>
+      <p><b>Muoviti</b> con ← → (o A / D). <b>Prendi / lascia</b> un rifiuto con Spazio (o E, ↓): devi essere vicino al rifiuto sul nastro, oppure sotto una cassa per lasciarla. <b>Pausa</b>: P o Esc.</p>
+      <p>Il colore indica il tipo di rifiuto: portalo nella cassa dello stesso colore. Ci sono rifiuti leggeri e frequenti, medi, e pesantissimi e rari (ma valgono di più): più è pesante, più vai piano.</p>
+      <p>Se un rifiuto cade dal nastro o lo butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 rifiuti di fila giuste il moltiplicatore sale.</p>
       <p>Raggiungendo certi punteggi arrivano dei <b>colleghi</b> comandati dall'IA che ti aiutano (ogni tanto sbagliano cassa!).</p>
-      <p>Ogni parola smistata finisce nel <b>Pokédex</b> di quel seme. Lo stesso seme genera sempre le stesse parole (e gli stessi colori).</p>
+      <p>Ogni rifiuto smistato finisce nel <b>catalogo</b> di quel seme. Lo stesso seme genera sempre gli stessi rifiuti.</p>
       <button data-act="menu">Indietro</button>
     </div>`);
   }
@@ -49,11 +49,11 @@
       ${list.length ? '' : '<p>Nessun salvataggio. Inizia una nuova partita o importane uno.</p>'}
       ${list.map((s) => `<div class="slot">
           <div><b>${esc(s.character.name)}</b> · seme <code>${esc(s.seed)}</code>
-            <small>Record ${s.stats.best} · ${Object.keys(s.dex).length} parole nel Pokédex · ${s.stats.runs} turni${s.run ? ' · <b style="color:#f5c518">partita in corso</b>' : ''}</small>
+            <small>Record ${s.stats.best} · ${Object.keys(s.dex).length} rifiuti nel catalogo · ${s.stats.runs} turni${s.run ? ' · <b style="color:#f5c518">partita in corso</b>' : ''}</small>
             <small>Ultimo salvataggio: ${fmtDate(s.updated)}</small></div>
           <div class="row">
             <button data-act="play" data-id="${s.id}">Gioca</button>
-            <button class="alt" data-act="dex" data-id="${s.id}">Pokédex</button>
+            <button class="alt" data-act="dex" data-id="${s.id}">Catalogo</button>
             <button class="alt" data-act="export" data-id="${s.id}">Esporta</button>
             <button class="danger" data-act="del" data-id="${s.id}">✕</button>
           </div></div>`).join('')}
@@ -103,10 +103,10 @@
         <div class="col"><canvas id="prev" width="190" height="260"></canvas>
           <button class="alt" data-act="randChar">🎲 Casuale</button></div>
       </div>
-      <label>Seme (genera le parole e i loro colori)</label>
+      <label>Seme (genera i rifiuti che arrivano)</label>
       <div class="row"><input type="text" id="cSeed" maxlength="40" value="${esc(draft.seed)}" style="flex:1;min-width:140px">
         <button class="alt" data-act="randSeed">🎲 Seme casuale</button></div>
-      <p class="muted">Scrivi un seme tuo oppure tira i dadi: stesso seme, stesse parole.</p>
+      <p class="muted">Scrivi un seme tuo oppure tira i dadi: stesso seme, stessi rifiuti.</p>
       <div class="row"><button class="big" data-act="create">Inizia il turno</button><button class="alt" data-act="menu">Indietro</button></div>
     </div>`);
     document.getElementById('cName').addEventListener('input', (e) => (draft.name = e.target.value));
@@ -131,9 +131,9 @@
     const byLen = (n) => entries.filter(([, d]) => d.len === n).length;
     let filter = -1, sort = 'az';
     show(`<div class="card col">
-      <h2>Pokédex · ${esc(slot.character.name)} · seme ${esc(slot.seed)}</h2>
-      <div class="stat"><span>Parole scoperte</span><b>${entries.length}</b></div>
-      <div class="stat"><span>4 lettere / 6 lettere / 8 lettere</span><b>${byLen(4)} / ${byLen(6)} / ${byLen(8)}</b></div>
+      <h2>Catalogo · ${esc(slot.character.name)} · seme ${esc(slot.seed)}</h2>
+      <div class="stat"><span>Rifiuti scoperti</span><b>${entries.length}</b></div>
+      <div class="stat"><span>Leggeri / medi / pesanti</span><b>${byLen(4)} / ${byLen(6)} / ${byLen(8)}</b></div>
       <div class="row" id="dexTabs"></div>
       <div class="row"><label style="margin:0">Ordina</label>
         <select id="dexSort" style="width:auto"><option value="az">A → Z</option><option value="len">Lunghezza</option><option value="n">Più smistate</option></select></div>
@@ -152,7 +152,7 @@
       rows.sort((a, b) => (sort === 'len' ? a[1].len - b[1].len || a[0].localeCompare(b[0]) : sort === 'n' ? b[1].n - a[1].n : a[0].localeCompare(b[0])));
       list.innerHTML = rows.length
         ? rows.map(([w, d]) => `<span class="chip" style="color:${M.CATS[d.cat].color};border-color:${M.CATS[d.cat].color}66">${esc(w)}<small>×${d.n}</small></span>`).join('')
-        : '<p>Ancora nessuna parola: smistane qualcuna!</p>';
+        : '<p>Ancora nessun rifiuto: smistane qualcuno!</p>';
     };
     tabs.addEventListener('click', (e) => {
       const b = e.target.closest('[data-f]');
@@ -168,7 +168,7 @@
       <h2>Pausa</h2>
       <button class="big" data-act="resume">▶ Riprendi</button>
       <button class="alt" data-act="saveNow">💾 Salva partita</button>
-      <button class="alt" data-act="pdex">Pokédex</button>
+      <button class="alt" data-act="pdex">Catalogo</button>
       <button class="alt" data-act="mute">Audio: ${M.Storage.settings().mute ? 'OFF' : 'ON'}</button>
       <button class="danger" data-act="quit">Salva ed esci al menu</button>
     </div>`);
@@ -182,11 +182,11 @@
       ${s.record ? '<p style="color:#f5c518;font-weight:700">🏆 Nuovo record!</p>' : ''}
       <div class="stat"><span>Punti</span><b>${s.score}</b></div>
       <div class="stat"><span>Record</span><b>${s.best}</b></div>
-      <div class="stat"><span>Parole smistate</span><b>${s.saved}</b></div>
-      <div class="stat"><span>Nuove nel Pokédex</span><b>${s.newWords}</b></div>
+      <div class="stat"><span>Rifiuti smistati</span><b>${s.saved}</b></div>
+      <div class="stat"><span>Nuovi nel catalogo</span><b>${s.newWords}</b></div>
       <div class="stat"><span>Durata</span><b>${fmtTime(s.time)}</b></div>
       <button class="big" data-act="again">Ancora!</button>
-      <button class="alt" data-act="pdex">Pokédex</button>
+      <button class="alt" data-act="pdex">Catalogo</button>
       <button class="alt" data-act="quitNoSave">Menu</button>
     </div>`);
   }
@@ -250,8 +250,8 @@
     dex: (d) => { dex(M.Storage.get(d.id)); dex.back = saves; },
     back: () => (dex.back || menu)(),
     del: (d) => { const s = M.Storage.get(d.id); if (s && confirm(`Eliminare il salvataggio di ${s.character.name} (seme ${s.seed})?`)) { M.Storage.remove(d.id); saves(); } },
-    export: (d) => { const s = M.Storage.get(d.id); download(`palindromi-${slug(s.character.name)}-${slug(s.seed)}.json`, M.Storage.exportJSON([d.id])); },
-    exportAll: () => download('palindromi-salvataggi.json', M.Storage.exportJSON()),
+    export: (d) => { const s = M.Storage.get(d.id); download(`rifiuti-${slug(s.character.name)}-${slug(s.seed)}.json`, M.Storage.exportJSON([d.id])); },
+    exportAll: () => download('rifiuti-salvataggi.json', M.Storage.exportJSON()),
     import: () => document.getElementById('file').click(),
     mute: () => { const st = M.Storage.settings(); st.mute = !st.mute; M.Storage.saveSettings(); game ? pauseMenu() : menu(); },
     pick: (d) => { draft[d.key] = d.key === 'gender' || d.key === 'hair' ? d.v : +d.v; refreshDraft(); },

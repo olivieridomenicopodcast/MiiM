@@ -1,8 +1,8 @@
 // Salvataggi multipli in localStorage + import/export JSON.
 (function () {
   const M = (window.MiiM = window.MiiM || {});
-  const KEY = 'miim.smista-palindromi.v1';
-  const FORMAT = 'smista-palindromi';
+  const KEY = 'miim.smista-rifiuti.v1';
+  const FORMAT = 'smista-rifiuti';
   let db = null;
   let memFallback = null;
 
