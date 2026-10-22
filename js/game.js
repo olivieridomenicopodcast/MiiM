@@ -5,6 +5,8 @@
   const MAX_ERRORS = 15;
   const HELPER_COST = [300, 1000, 2500]; // punti per assumere il 1°, 2° e 3° collega
   const HELPER_NAMES = ['Gino', 'Marta', 'Pino', 'Lia', 'Otto', 'Anna', 'Ada', 'Bob', 'Ele', 'Ivo'];
+  const UNTANGLE_GAIN = 0.14, UNTANGLE_DECAY = 0.35; // ogni pressione riempie la barra del 14%, che cala del 35% al secondo
+  const TANGLE_MIN_GAP = 8, TANGLE_CHANCE = 0.15; // un groviglio ogni ~14 rifiuti, mai prima del 7°
   const PLAYER_SPEED = 260, HELPER_SPEED = 165;
   const CHAR_FONT = 'bold 22px "Courier New", monospace';
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -45,6 +47,19 @@
       return this.binX0 + i * this.binDX;
     }
 
+    // Larghezza di un rifiuto sul nastro (se è un groviglio di due parole, le due targhe si sovrappongono).
+    wOf(o) {
+      if (o.pair && o.pair.length > 1) return this.plateW(o.pair[0].len) + 0.55 * this.plateW(o.pair[1].len);
+      return this.plateW(o.len);
+    }
+
+    // Moltiplicatore di velocità di ciò che si porta in mano (due parole insieme pesano di più).
+    carryMult(c) {
+      if (!c) return 1;
+      if (c.pair) return M.lenInfo(Math.max(...c.pair.map((q) => q.len))).carry * (c.pair.length > 1 ? 0.85 : 1);
+      return M.lenInfo(c.len).carry;
+    }
+
     plateW(len) {
       return Math.round(len * this.charW + 18);
     }
@@ -71,7 +86,7 @@
     fresh() {
       return {
         t: 0, score: 0, spent: 0, streak: 0, errors: 0, saved: 0, newWords: 0,
-        spawnIndex: 0, spawnIn: 1.2, words: [], wid: 1,
+        spawnIndex: 0, spawnIn: 1.2, words: [], wid: 1, lastTangle: -10,
         player: { x: this.W / 2, carry: null, facing: 1, phase: 0, moving: false },
         helpers: [],
       };
@@ -85,11 +100,21 @@
         r.t = num(s.t, 0); r.score = num(s.score, 0); r.spent = num(s.spent, 0); r.streak = num(s.streak, 0);
         r.errors = num(s.errors, 0, 0, MAX_ERRORS - 1); r.saved = num(s.saved, 0);
         r.newWords = num(s.newWords, 0); r.spawnIndex = Math.floor(num(s.spawnIndex, 0));
-        r.spawnIn = num(s.spawnIn, 1, 0, 10);
-        const mk = (o) => {
-          const text = String(o.text);
+        r.spawnIn = num(s.spawnIn, 1, 0, 10); r.lastTangle = Math.floor(num(s.lastTangle, -10, -10));
+        const word = (t) => {
+          const text = String(t);
           if (!/^[A-Za-z]{4,8}$/.test(text) || text.length % 2 || !M.isPalindrome(text)) throw 0;
-          return { id: r.wid++, text, len: text.length, cat: M.categoryOf(text), x: num(o.x, this.W + 50, -50, 3000), claim: null };
+          return { text, len: text.length, cat: M.categoryOf(text) };
+        };
+        const mk = (o) => {
+          const obj = Object.assign({ id: r.wid++, x: num(o.x, this.W + 50, -50, 3000), claim: null }, word(o.text));
+          if (Array.isArray(o.pair) && o.pair.length >= 1 && o.pair.length <= 2) {
+            obj.pair = o.pair.map(word);
+            Object.assign(obj, obj.pair[0]);
+            obj.tangled = !!o.tangled && obj.pair.length === 2;
+            obj.progress = num(o.progress, 0, 0, 1);
+          }
+          return obj;
         };
         r.words = s.words.slice(0, 60).map(mk);
         r.player.x = num(s.player.x, this.W / 2, 30, this.W - 30);
@@ -107,10 +132,10 @@
 
     snapshot() {
       const r = this.run;
-      const w = (o) => ({ text: o.text, x: Math.round(o.x) });
+      const w = (o) => ({ text: o.text, x: Math.round(o.x), pair: o.pair ? o.pair.map((q) => q.text) : undefined, tangled: o.tangled, progress: o.progress });
       return {
         t: r.t, score: r.score, spent: r.spent, streak: r.streak, errors: r.errors, saved: r.saved, newWords: r.newWords,
-        spawnIndex: r.spawnIndex, spawnIn: r.spawnIn,
+        spawnIndex: r.spawnIndex, spawnIn: r.spawnIn, lastTangle: r.lastTangle,
         player: { x: r.player.x, carry: r.player.carry ? w(r.player.carry) : null },
         words: r.words.map(w),
         helpers: r.helpers.map((h) => ({ name: h.name, x: h.x, carry: h.carry ? w(h.carry) : null })),
@@ -196,19 +221,22 @@
         w.x -= this.belt * dt;
         if (w.x < 24) {
           r.words.splice(r.words.indexOf(w), 1);
-          this.penalty(w, 'Persa!', w.x + 20, this.BELT_TOP);
+          if (w.pair) w.pair.forEach((q, i) => this.penalty(q, 'Persa!', w.x + 20 + i * 40, this.BELT_TOP, i === 0));
+          else this.penalty(w, 'Persa!', w.x + 20, this.BELT_TOP);
         }
       }
 
       // giocatore
       const p = r.player;
       const dir = (this.keys.has('right') ? 1 : 0) - (this.keys.has('left') ? 1 : 0);
-      p.moving = dir !== 0;
-      if (dir) {
+      const stuck = !!(p.carry && p.carry.tangled); // finché i rifiuti sono accavallati non ti puoi muovere
+      p.moving = dir !== 0 && !stuck;
+      if (stuck) p.carry.progress = Math.max(0, p.carry.progress - UNTANGLE_DECAY * dt);
+      if (p.moving) {
         p.facing = dir;
-        const mult = p.carry ? M.lenInfo(p.carry.len).carry : 1;
+        const mult = this.carryMult(p.carry);
         p.x = clamp(p.x + dir * PLAYER_SPEED * this.kx * mult * dt, 30, this.W - 30);
-        p.phase += dt * 11 * (p.carry ? M.lenInfo(p.carry.len).carry : 1);
+        p.phase += dt * 11 * mult;
       }
       if (this.actQ) {
         this.actQ = false;
@@ -239,26 +267,62 @@
 
     spawn() {
       const r = this.run, seed = this.slot.seed;
-      const wd = M.makeWord(seed, r.spawnIndex);
-      const rg = M.rngFor(seed, 't' + r.spawnIndex);
+      const idx = r.spawnIndex;
+      const wd = M.makeWord(seed, idx);
+      const rg = M.rngFor(seed, 't' + idx);
       r.spawnIndex++;
       r.spawnIn = Math.max(0.9, 3.2 - this.level * 0.2) * (0.75 + rg() * 0.5);
-      const pw = this.plateW(wd.len);
+      const item = { id: r.wid++, text: wd.text, len: wd.len, cat: wd.cat, x: 0, claim: null };
+      // ogni tanto due rifiuti arrivano accavallati (deciso dal seme, quindi sempre uguale a parità di seme)
+      if (idx >= 6 && idx - r.lastTangle >= TANGLE_MIN_GAP && M.rngFor(seed, 'g' + idx)() < TANGLE_CHANCE) {
+        item.pair = [wd, M.makeWord(seed, 100000 + idx)];
+        item.tangled = true;
+        item.progress = 0;
+        r.lastTangle = idx;
+        if (!this.tangleHinted) {
+          this.tangleHinted = true;
+          this.toast('Rifiuti accavallati! Prendili e premi Spazio a raffica per staccarli');
+        }
+      }
+      const pw = this.wOf(item);
       let x = this.W + pw / 2 + 10;
-      for (const o of r.words) x = Math.max(x, o.x + (this.plateW(o.len) + pw) / 2 + 14);
-      r.words.push({ id: r.wid++, text: wd.text, len: wd.len, cat: wd.cat, x, claim: null });
+      for (const o of r.words) x = Math.max(x, o.x + (this.wOf(o) + pw) / 2 + 14);
+      item.x = x;
+      r.words.push(item);
     }
 
     reachable(w, px) {
-      return Math.abs(w.x - px) < this.plateW(w.len) / 2 + 26;
+      return Math.abs(w.x - px) < this.wOf(w) / 2 + 26;
     }
 
     action() {
       const r = this.run, p = r.player;
+      if (p.carry && p.carry.tangled) {
+        // ogni pressione fa avanzare la barra: bisogna premere in fretta, prima che cali
+        const c = p.carry;
+        c.progress = Math.min(1, c.progress + UNTANGLE_GAIN);
+        M.sfx('pick');
+        if (c.progress >= 1) {
+          c.tangled = false;
+          this.toast('Staccati! Portali nelle casse giuste');
+          M.sfx('ok');
+        }
+        return;
+      }
       if (p.carry) {
         const i = this.binUnder(p.x);
         if (i < 0) {
           this.toast('Portala sotto una cassa!');
+          return;
+        }
+        const c = p.carry;
+        if (c.pair) {
+          // due rifiuti in mano: butta quello che corrisponde alla cassa (altrimenti il primo)
+          let k = c.pair.findIndex((q) => q.cat === i);
+          if (k < 0) k = 0;
+          const w = c.pair.splice(k, 1)[0];
+          if (c.pair.length === 1) p.carry = Object.assign({ id: r.wid++, x: 0, claim: null }, c.pair[0]);
+          this.drop(w, i, p.x, this.WALK_Y - 60, true);
           return;
         }
         const w = p.carry;
@@ -270,6 +334,7 @@
         if (best) {
           r.words.splice(r.words.indexOf(best), 1);
           p.carry = best;
+          if (best.pair) best.progress = 0.1;
           M.sfx('pick');
         }
       }
@@ -312,12 +377,12 @@
       return 1 + Math.min(4, Math.floor(this.run.streak / 5)) * 0.5;
     }
 
-    penalty(w, why, x, y) {
+    penalty(w, why, x, y, countError = true) {
       const r = this.run;
       const pts = Math.round(M.lenInfo(w.len).base / 2);
       r.score = Math.max(0, r.score - pts);
       r.streak = 0;
-      r.errors++;
+      if (countError) r.errors++;
       M.sfx('bad');
       this.fx.pops.push({ x: clamp(x, 40, this.W - 40), y: y || 300, text: `${why} -${pts}`, color: '#ff6b6b', t: 0 });
     }
@@ -382,6 +447,7 @@
           h.target = null;
           let bt = Infinity;
           for (const o of r.words) {
+            if (o.pair) continue; // i grovigli li può staccare solo il giocatore
             if (o.claim !== null && o.claim !== idx && r.helpers[o.claim]) continue;
             const t = this.interceptTime(h, o);
             if (t < bt) { bt = t; w = o; }
@@ -452,9 +518,12 @@
       this.drawBelt(ctx);
       let near = null;
       if (!carrying) for (const w of r.words) if (this.reachable(w, p.x) && (!near || Math.abs(w.x - p.x) < Math.abs(near.x - p.x))) near = w;
-      for (const w of r.words) this.drawPlate(ctx, w.text, w.cat, w.x, this.BELT_TOP + 8, w === near);
-      for (const h of r.helpers) if (h.carry) this.drawPlate(ctx, h.carry.text, h.carry.cat, h.x, this.WALK_Y - 60, false);
-      if (carrying) this.drawPlate(ctx, p.carry.text, p.carry.cat, p.x, this.WALK_Y - 60, false);
+      for (const w of r.words) this.drawItem(ctx, w, w.x, this.BELT_TOP + 8, w === near);
+      for (const h of r.helpers) if (h.carry) this.drawItem(ctx, h.carry, h.x, this.WALK_Y - 60, false);
+      if (carrying) {
+        this.drawItem(ctx, p.carry, p.x, this.WALK_Y - 60, false);
+        if (p.carry.tangled) this.drawUntangleBar(ctx, p.x, this.WALK_Y - 152, p.carry.progress);
+      }
       for (const a of this.fx.fly) {
         const k = a.t / a.dur;
         this.drawPlate(ctx, a.text, M.CATS.findIndex((c) => c.color === a.color), a.x0 + (a.x1 - a.x0) * k, a.y0 + (a.y1 - a.y0) * k - Math.sin(k * Math.PI) * 40, false, 1 - k * 0.4);
@@ -556,7 +625,58 @@
       ctx.fillText('◀ SCARTO', 6, this.BELT_TOP + 56);
     }
 
-    drawPlate(ctx, text, cat, x, y, hl, alpha) {
+    // Disegna un rifiuto singolo o un groviglio di due parole.
+    drawItem(ctx, o, x, y, hl) {
+      if (!o.pair) return this.drawPlate(ctx, o.text, o.cat, x, y, hl);
+      const [a, b] = o.pair;
+      if (!o.tangled || !b) {
+        // staccati (portati in mano): uno sopra l'altro
+        this.drawPlate(ctx, a.text, a.cat, x, y, false);
+        if (b) this.drawPlate(ctx, b.text, b.cat, x, y - 36, false);
+        return;
+      }
+      const w0 = this.plateW(a.len), w1 = this.plateW(b.len), tot = this.wOf(o);
+      const c0 = x - tot / 2 + w0 / 2, c1 = x + tot / 2 - w1 / 2;
+      this.drawPlate(ctx, a.text, a.cat, c0, y + 4, hl, 0, -0.06);
+      this.drawPlate(ctx, b.text, b.cat, c1, y - 8, hl, 0, 0.1);
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const zx = c1 - w1 / 2;
+      ctx.moveTo(zx - 8, y - 22); ctx.lineTo(zx + 2, y - 12); ctx.lineTo(zx - 6, y - 2); ctx.lineTo(zx + 4, y + 8); ctx.lineTo(zx - 4, y + 18);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    drawUntangleBar(ctx, x, y, k) {
+      const w = 96;
+      ctx.fillStyle = 'rgba(0,0,0,.7)';
+      M.rr(ctx, x - w / 2 - 3, y - 3, w + 6, 18, 8);
+      ctx.fill();
+      ctx.fillStyle = k > 0.66 ? '#22c55e' : k > 0.33 ? '#facc15' : '#ef4444';
+      M.rr(ctx, x - w / 2, y, Math.max(6, w * k), 12, 6);
+      ctx.fill();
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#000';
+      ctx.strokeText('PREMI SPAZIO A RAFFICA!', x, y - 8);
+      ctx.fillStyle = '#fff';
+      ctx.fillText('PREMI SPAZIO A RAFFICA!', x, y - 8);
+    }
+
+    drawPlate(ctx, text, cat, x, y, hl, alpha, rot) {
+      if (rot) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        this.drawPlate(ctx, text, cat, 0, 0, hl, alpha);
+        ctx.restore();
+        return;
+      }
       const w = this.plateW(text.length), h = 32;
       ctx.save();
       if (alpha) ctx.globalAlpha = alpha;

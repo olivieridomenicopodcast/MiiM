@@ -11,6 +11,7 @@ Nessuna build: apri `index.html` nel browser (HTML + Canvas + JS puro).
 ## Regole
 - Rifiuti leggeri (frequenti), medi, pesanti (rari); più sono pesanti, più ti rallentano e più valgono.
 - Rifiuto perso o cassa sbagliata: perdi metà dei punti che valeva, azzeri la serie e fai un errore (15 errori = fine turno).
+- Ogni tanto due rifiuti arrivano accavallati: prendili e premi Spazio a raffica per staccarli (la barra cala se rallenti), poi portali nelle casse giuste.
 - Il nastro accelera col tempo. Con i punti (300 / 1000 / 2500) puoi assumere fino a 3 colleghi comandati dall'IA: tasto H o tocco sul riquadro in alto, che mostra il progresso.
 - Ogni rifiuto smistato entra nel Pokédex (unico, valido per tutti i semi).
 

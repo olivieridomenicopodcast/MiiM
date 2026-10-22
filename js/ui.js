@@ -40,6 +40,7 @@
       <h2>Come si gioca</h2>
       <p><b>Muoviti</b> con ← → (o A / D). <b>Prendi / lascia</b> un rifiuto con Spazio (o E, ↓), <b>H</b> per assumere un collega: devi essere vicino al rifiuto sul nastro, oppure sotto una cassa per lasciarla. <b>Pausa</b>: P o Esc.</p>
       <p>Il colore indica il tipo di rifiuto: portalo nella cassa dello stesso colore. Ci sono rifiuti leggeri e frequenti, medi, e pesantissimi e rari (ma valgono di più): più è pesante, più vai piano.</p>
+      <p>Ogni tanto due rifiuti arrivano <b>accavallati</b>: prendili e premi <b>Spazio a raffica</b> (o tocca il pulsante) finché la barra non si riempie; la barra cala se rallenti, e intanto non puoi muoverti. Poi portali nelle casse giuste: in mano ne hai due, e la cassa sotto cui sei prende quello che corrisponde. I colleghi non sanno staccarli!</p>
       <p>Se un rifiuto cade dal nastro o lo butti nella cassa sbagliata perdi la <b>metà</b> dei punti che varrebbe, azzeri la serie e fai un errore. Con ${M.MAX_ERRORS} errori il turno finisce. Dopo ogni 5 rifiuti di fila giuste il moltiplicatore sale.</p>
       <p>Con i punti puoi <b>assumere dei colleghi</b> (fino a 3, costano 300, 1000 e 2500 punti) comandati dall'IA: li compri col tasto H o toccando il riquadro in alto a sinistra, che mostra quanto manca. Ogni tanto sbagliano cassa!</p>
       <p>Ogni rifiuto smistato finisce nel <b>Pokédex</b>, che è unico per tutti i semi e per tutti i salvataggi. Lo stesso seme genera sempre gli stessi rifiuti.</p>
