@@ -576,7 +576,8 @@
   const TRENDS = [['▼ domanda bassa', 0.75], ['● normale', 1], ['▲ domanda alta', 1.35]];
   const GREET = ['«Lo teneva mia nonna, giuro.»', '«Affare unico, solo oggi!»', '«Non lo vedevo da anni, ma è ancora un gioiello.»', '«Mio cugino dice che vale una fortuna.»',
     '«L\'ho trovato in cantina. Ti interessa?»', '«È un pezzo raro, non buttarlo via.»', '«Ha un po\' di storia, ma funziona benissimo.»'];
-  const CUSTOMERS = 12, START_CASH = 200, APPRAISAL = 10;
+  const BUYER_GREET = ['«Cerco proprio una cosa così, hai qualcosa?»', '«Mi serve per un regalo. Pago bene!»', '«Sono un collezionista: fammi vedere cosa hai.»', '«Cerco un pezzo, non guardo il prezzo (troppo).»'];
+  const CUSTOMERS = 14, START_CASH = 200, APPRAISAL = 10, JUNK_RATE = 0.6;
 
   class Market {
     constructor(root, slot, hooks) {
@@ -596,10 +597,13 @@
         const value = Math.max(5, Math.round(VALUE[w.len] * cond[1] * this.trend[w.cat][1] * (0.9 + r() * 0.2) * special));
         const ask = Math.max(5, Math.round(value * (0.45 + r() * 1.0)));
         const floor = Math.round(ask * (0.55 + r() * 0.3));
-        this.clients.push({ w, cond, value, ask, floor, greet: GREET[Math.floor(r() * GREET.length)], est: null });
+        // ogni tanto, invece di vendere, il cliente vuole COMPRARE da te qualcosa del tuo magazzino
+        const buyer = { wants: i >= 2 && r() < 0.4, pick: r(), mult: 0.8 + r() * 0.8, greet: BUYER_GREET[Math.floor(r() * BUYER_GREET.length)] };
+        this.clients.push({ w, cond, value, ask, floor, greet: GREET[Math.floor(r() * GREET.length)], est: null, buyer });
       }
-      this.s = { i: 0, cash: START_CASH, stock: [], msg: '', done: false, newWords: 0, bought: 0 };
+      this.s = { i: 0, cash: START_CASH, stock: [], log: [], msg: '', done: false, newWords: 0, bought: 0 };
       this.root.addEventListener('click', this.onClick);
+      this.arrive();
       this.render();
     }
 
@@ -607,10 +611,23 @@
       this.root.removeEventListener('click', this.onClick);
     }
 
+    // Prepara il cliente corrente: compratore (se hai qualcosa in magazzino) oppure venditore.
+    arrive() {
+      const s = this.s, c = this.clients[s.i];
+      c.mode = c.buyer.wants && s.stock.length ? 'buy' : 'sell';
+      if (c.mode === 'buy') {
+        c.cat = s.stock[Math.floor(c.buyer.pick * s.stock.length)].w.cat; // vuole un tipo che hai davvero
+      } else if (s.cash < 5 && !s.stock.length) {
+        this.broke = true;
+      }
+    }
+
     buy(c, price, text) {
       const s = this.s;
       s.cash -= price;
-      s.stock.push({ w: c.w, paid: price, value: c.value });
+      const item = { w: c.w, paid: price, value: c.value, sold: null };
+      s.stock.push(item);
+      s.log.push(item);
       s.bought++;
       if (register(c.w)) s.newWords++;
       s.msg = text;
@@ -629,13 +646,44 @@
         s.msg = '';
         s.done = false;
         if (s.i >= CUSTOMERS) return this.end();
-      } else if (!s.done) {
+        this.arrive();
+        if (this.broke) return this.end();
+      } else if (a === 'junk') {
+        // il rigattiere ritira tutto il magazzino a prezzo ridotto: serve a non restare mai senza soldi
+        if (!s.stock.length) return;
+        const total = Math.round(s.stock.reduce((t, x) => t + x.value, 0) * JUNK_RATE);
+        s.stock.forEach((x) => (x.sold = Math.round(x.value * JUNK_RATE)));
+        s.cash += total;
+        s.stock = [];
+        s.msg = `Il rigattiere ritira tutto per ${total} € (il ${Math.round(JUNK_RATE * 100)}% del valore).`;
+        M.sfx('ok');
+        if (c.mode === 'buy') {
+          c.mode = 'sell';
+          s.msg += ' Il compratore se n\'è andato a mani vuote.';
+          s.done = true;
+        }
+      } else if (c.mode === 'buy' && !s.done) {
+        if (a === 'sell') {
+          const k = +b.dataset.k, item = s.stock[k];
+          if (!item || item.w.cat !== c.cat) return;
+          const price = Math.round(item.value * c.buyer.mult);
+          s.cash += price;
+          item.sold = price;
+          s.stock.splice(k, 1);
+          s.msg = `Venduto a ${price} €: ${price >= item.paid ? 'guadagni' : 'perdi'} ${Math.abs(price - item.paid)} €.`;
+          s.done = true;
+          M.sfx('ok');
+        } else if (a === 'skip') {
+          s.msg = 'Non vendi: il cliente saluta.';
+          s.done = true;
+        }
+      } else if (c.mode === 'sell' && !s.done) {
         if (a === 'buy') {
-          if (s.cash < c.ask) s.msg = 'Non hai abbastanza soldi.';
+          if (s.cash < c.ask) s.msg = 'Non hai abbastanza soldi: vendi qualcosa dal magazzino (o dal rigattiere).';
           else this.buy(c, c.ask, `Affare fatto: paghi ${c.ask} €.`);
         } else if (a === 'offer') {
           const offer = Math.round(c.ask * (1 - +b.dataset.p / 100));
-          if (s.cash < offer) s.msg = 'Non hai abbastanza soldi.';
+          if (s.cash < offer) s.msg = 'Non hai abbastanza soldi: vendi qualcosa dal magazzino (o dal rigattiere).';
           else if (offer >= c.floor) this.buy(c, offer, `«D'accordo!» Paghi ${offer} € invece di ${c.ask} €.`);
           else { s.msg = '«Ma dai, così mi offendi!» Il cliente se ne va.'; s.done = true; M.sfx('bad'); }
         } else if (a === 'skip') {
@@ -656,23 +704,41 @@
 
     end() {
       const s = this.s;
-      const total = s.stock.reduce((a, x) => a + x.value, 0);
-      const final = s.cash + total;
+      const left = s.stock.reduce((a, x) => a + x.value, 0); // a fine giornata il magazzino si vende al valore di mercato
+      const final = s.cash + left;
       const profit = final - START_CASH;
-      const lines = s.stock.map((x) => `<div class="stat"><span>${mirrorHTML(x.w.text)}</span><b style="color:${x.value >= x.paid ? '#7CFC9A' : '#ff6b6b'}">paghi ${x.paid} € · vale ${x.value} €</b></div>`);
+      const lines = s.log.map((x) => {
+        const got = x.sold !== null ? `venduto ${x.sold} €` : `a fine giornata ${x.value} €`;
+        const gain = (x.sold !== null ? x.sold : x.value) - x.paid;
+        return `<div class="stat"><span>${mirrorHTML(x.w.text)}</span><b style="color:${gain >= 0 ? '#7CFC9A' : '#ff6b6b'}">pagato ${x.paid} € · ${got}</b></div>`;
+      });
       lines.unshift(`<div class="stat"><span>Cassa finale</span><b>${final} € (partivi da ${START_CASH} €)</b></div>`);
-      finish(this, { title: 'Giornata finita!', score: Math.max(0, profit), saved: s.bought, newWords: s.newWords, savedLabel: 'Rifiuti comprati', lines });
+      if (this.broke) lines.unshift('<p style="color:#ff6b6b">Sei rimasto al verde, senza soldi né merce: la giornata finisce qui.</p>');
+      finish(this, { title: this.broke ? 'Al verde!' : 'Giornata finita!', score: Math.max(0, profit), saved: s.bought, newWords: s.newWords, savedLabel: 'Rifiuti comprati', lines });
     }
 
     render() {
       const s = this.s, c = this.clients[s.i], d = M.itemInfo(c.w.text), cat = M.CATS[c.w.cat];
       const trend = M.CATS.map((k, i) => `<span class="chip" style="color:${k.color};border-color:${k.color}66;font-size:12px">${k.name} ${this.trend[i][0]}</span>`).join('');
-      const act = (m, label, extra = '', cls = '') => `<button class="${cls}" data-m="${m}" ${extra} ${s.done ? 'disabled' : ''}>${label}</button>`;
-      this.root.innerHTML = `<div class="card col">
-        <h2>Mercatino dell'usato <small style="color:#a9b4c2;font-weight:400">· cliente ${s.i + 1} di ${CUSTOMERS}</small></h2>
-        <div class="row spread"><span>Cassa <b>${s.cash} €</b></span><span>In magazzino <b>${s.stock.length}</b></span></div>
-        <div class="chips">${trend}</div>
-        <div class="itemrow">
+      const dis = s.done ? 'disabled' : '';
+      const stockHTML = s.stock.length
+        ? s.stock.map((x, k) => {
+          const buyerMode = c.mode === 'buy' && !s.done;
+          const fits = buyerMode && x.w.cat === c.cat;
+          const price = fits ? Math.round(x.value * c.buyer.mult) : null;
+          const col = M.CATS[x.w.cat].color;
+          return `<button class="stk ${fits ? 'fits' : ''}" data-m="sell" data-k="${k}" ${fits ? '' : 'disabled'} style="--c:${col}"><img alt="" src="${spriteURL(x.w.text, 44)}"><b>${mirrorHTML(x.w.text)}</b>` +
+            `<small>pagato ${x.paid} €${fits ? ` · <span style="color:#7CFC9A">offre ${price} €</span>` : ''}</small></button>`;
+        }).join('')
+        : '<span class="muted">Il magazzino è vuoto.</span>';
+      let main;
+      if (c.mode === 'buy') {
+        const wantCat = M.CATS[c.cat];
+        main = `<div class="col"><p style="font-size:15px">${c.buyer.greet}</p>
+          <div class="stat"><span>Cerca</span><b style="color:${wantCat.color}">un rifiuto di tipo ${wantCat.name}</b></div>
+          <p class="muted">Tocca nel magazzino un pezzo di quel tipo per venderglielo al prezzo che offre.</p></div>`;
+      } else {
+        main = `<div class="itemrow">
           <div class="col" style="align-items:center"><img alt="" src="${spriteURL(c.w.text, 200)}" style="width:200px;border-radius:10px">
             <b style="font-family:'Courier New',monospace;font-size:22px;color:${cat.color}">${mirrorHTML(c.w.text)}</b></div>
           <div class="col">
@@ -682,19 +748,25 @@
             <div class="stat"><span>Chiede</span><b style="color:#ffd166">${c.ask} €</b></div>
             ${c.est !== null ? `<div class="stat"><span>Perizia dell'esperto</span><b>circa ${c.est} €</b></div>` : ''}
             <p style="white-space:pre-line;font-size:13px">${c.greet}\n${esc(d.text)}</p>
-          </div>
-        </div>
+          </div></div>`;
+      }
+      const actions = c.mode === 'buy'
+        ? `<button class="alt" data-m="skip" ${dis}>Non vendo</button>`
+        : `<button data-m="buy" ${dis}>Compra a ${c.ask} €</button>
+           <button class="alt" data-m="offer" data-p="10" ${dis}>Offri −10%</button><button class="alt" data-m="offer" data-p="25" ${dis}>Offri −25%</button><button class="alt" data-m="offer" data-p="40" ${dis}>Offri −40%</button>
+           <button class="alt" data-m="appraise" ${s.done || c.est !== null ? 'disabled' : ''}>Perizia (${APPRAISAL} €)</button>
+           <button class="alt" data-m="skip" ${dis}>Rifiuta</button>`;
+      this.root.innerHTML = `<div class="card col">
+        <h2>Mercatino dell'usato <small style="color:#a9b4c2;font-weight:400">· cliente ${s.i + 1} di ${CUSTOMERS}</small></h2>
+        <div class="row spread"><span>Cassa <b style="color:${s.cash < 30 ? '#ff6b6b' : '#fff'}">${s.cash} €</b></span><span>In magazzino <b>${s.stock.length}</b></span></div>
+        <div class="chips">${trend}</div>
+        ${main}
         <p style="min-height:22px;color:#ffd166">${esc(s.msg)}</p>
-        <div class="row">
-          ${act('buy', `Compra a ${c.ask} €`)}
-          ${act('offer', 'Offri −10%', 'data-p="10"', 'alt')}${act('offer', 'Offri −25%', 'data-p="25"', 'alt')}${act('offer', 'Offri −40%', 'data-p="40"', 'alt')}
-        </div>
-        <div class="row">
-          <button class="alt" data-m="appraise" ${s.done || c.est !== null ? 'disabled' : ''}>Perizia (${APPRAISAL} €)</button>
-          ${act('skip', 'Rifiuta', '', 'alt')}
-          ${s.done ? '<button class="big" data-m="next">Prossimo cliente ▶</button>' : ''}
-          <button class="danger" data-m="quit">Esci</button>
-        </div></div>`;
+        <div class="row">${actions}</div>
+        <div class="stock"><div class="row spread"><b>Il tuo magazzino</b>
+          <button class="alt" data-m="junk" ${s.stock.length ? '' : 'disabled'}>Rigattiere: vendi tutto (${Math.round(JUNK_RATE * 100)}%)</button></div>
+          <div class="row" style="margin-top:6px">${stockHTML}</div></div>
+        <div class="row">${s.done ? '<button class="big" data-m="next">Prossimo cliente ▶</button>' : ''}<button class="danger" data-m="quit">Esci</button></div></div>`;
     }
   }
   Object.assign(Market.prototype, Base);
@@ -703,6 +775,6 @@
     { id: 'nastro', name: 'Il nastro', desc: 'Smista i rifiuti che arrivano sul nastro, con colleghi e grovigli.' },
     { id: 'domino', name: 'Dominò dei palindromi', desc: 'Attacca le parole per lettera o per colore e batti Gino.', cls: Domino },
     { id: 'fiume', name: 'Il fiume dei riflessi', desc: 'Pesca i rifiuti veri, evita le illusioni nel riflesso.', cls: River },
-    { id: 'mercatino', name: 'Mercatino dell\'usato', desc: 'Compra, contratta e rivendi: chiudi la giornata in guadagno.', cls: Market },
+    { id: 'mercatino', name: 'Mercatino dell\'usato', desc: 'Compra, contratta e rivendi ai compratori: chiudi la giornata in guadagno.', cls: Market },
   ];
 })();
