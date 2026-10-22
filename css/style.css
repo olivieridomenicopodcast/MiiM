@@ -57,3 +57,8 @@ label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
   .sticky { bottom: -12px; }
 }
 .mir { display: inline-block; transform: scaleX(-1); }
+.chip[data-act] { cursor: pointer; }
+.chip[data-act]:hover { background: #1c2430; }
+.itemrow { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+.itemrow canvas { width: 100%; border-radius: 10px; }
+@media (max-width: 640px) { .itemrow { grid-template-columns: 1fr; } .itemrow canvas { max-width: 260px; margin: 0 auto; } }

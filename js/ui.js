@@ -141,6 +141,7 @@
       <div class="row" id="dexTabs"></div>
       <div class="row"><label style="margin:0">Ordina</label>
         <select id="dexSort" style="width:auto"><option value="az">A → Z</option><option value="len">Lunghezza</option><option value="n">Più smistate</option></select></div>
+      <p class="muted">Tocca un rifiuto per aprire la sua scheda.</p>
       <div class="chips" id="dexList"></div>
       <button class="alt" data-act="back">Indietro</button>
     </div>`);
@@ -155,7 +156,7 @@
       let rows = entries.filter(([, d]) => filter < 0 || d.cat === filter);
       rows.sort((a, b) => (sort === 'len' ? a[1].len - b[1].len || a[0].localeCompare(b[0]) : sort === 'n' ? b[1].n - a[1].n : a[0].localeCompare(b[0])));
       list.innerHTML = rows.length
-        ? rows.map(([w, d]) => `<span class="chip" style="color:${M.CATS[d.cat].color};border-color:${M.CATS[d.cat].color}66">${mirror(w)}<small>×${d.n}</small></span>`).join('')
+        ? rows.map(([w, d]) => `<span class="chip" data-act="item" data-w="${esc(w)}" style="color:${M.CATS[d.cat].color};border-color:${M.CATS[d.cat].color}66">${mirror(w)}<small>×${d.n}</small></span>`).join('')
         : '<p>Ancora nessun rifiuto: smistane qualcuno!</p>';
     };
     tabs.addEventListener('click', (e) => {
@@ -165,6 +166,26 @@
     document.getElementById('dexSort').addEventListener('change', (e) => { sort = e.target.value; draw(); });
     dex.back = back;
     draw();
+  }
+
+  function itemCard(word) {
+    const d = M.itemInfo(word), cat = M.CATS[d.cat], n = (M.Storage.dex()[word] || { n: 0 }).n;
+    show(`<div class="card col">
+      <h2 style="color:${cat.color}">${mirror(word)} <small style="color:#a9b4c2;font-weight:400">· ${cat.name} · ${d.noun}</small></h2>
+      <div class="itemrow">
+        <canvas id="itemCv" width="260" height="260"></canvas>
+        <div class="col">
+          <div class="stat"><span>Rarità</span><b style="color:${cat.color}">${d.rarity} ${d.stars}</b></div>
+          <div class="stat"><span>Peso</span><b>${d.weight}</b></div>
+          <div class="stat"><span>Valore</span><b>${d.points} punti</b></div>
+          <div class="stat"><span>Smistato</span><b>${n} ${n === 1 ? 'volta' : 'volte'}</b></div>
+          <p>${esc(d.text)}</p>
+          <p class="muted"><b>Consiglio:</b> ${esc(d.tip)}</p>
+        </div>
+      </div>
+      <button class="alt" data-act="itemBack">Indietro</button>
+    </div>`);
+    M.drawItem(document.getElementById('itemCv').getContext('2d'), word, 260, 260);
   }
 
   function pauseMenu() {
@@ -252,6 +273,8 @@
     saves, help,
     play: (d) => play(d.id),
     dex: () => { dex(); dex.back = menu; },
+    item: (d) => itemCard(d.w),
+    itemBack: () => dex(dex.back),
     back: () => (dex.back || menu)(),
     del: (d) => { const s = M.Storage.get(d.id); if (s && confirm(`Eliminare il salvataggio di ${s.character.name} (seme ${s.seed})?`)) { M.Storage.remove(d.id); saves(); } },
     export: (d) => { const s = M.Storage.get(d.id); download(`rifiuti-${slug(s.character.name)}-${slug(s.seed)}.json`, M.Storage.exportJSON([d.id])); },
