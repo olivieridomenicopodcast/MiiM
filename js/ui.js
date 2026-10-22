@@ -221,6 +221,15 @@
       <button class="alt" data-act="modes">Altre modalità</button>
       <button class="alt" data-act="quitNoSave">Menu</button>
     </div>`);
+    // per un paio di secondi i pulsanti sono disattivati, così non si chiude il riepilogo toccando a raffica
+    const card = root.firstElementChild, btns = [...card.querySelectorAll('button')];
+    btns.forEach((b) => (b.disabled = true));
+    card.style.opacity = '.92';
+    setTimeout(() => {
+      if (!card.isConnected) return;
+      btns.forEach((b) => (b.disabled = false));
+      card.style.opacity = '';
+    }, 2000);
   }
 
   // Le altre modalità si sbloccano dopo aver finito almeno un turno del nastro.
