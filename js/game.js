@@ -81,6 +81,7 @@
     }
 
     stop() {
+      if (this.hooks.onHireReady) this.hooks.onHireReady(false);
       cancelAnimationFrame(this.raf);
       window.removeEventListener('keydown', this.onKeyDown);
       this.canvas.removeEventListener('pointerdown', this.onPointer);
@@ -252,6 +253,7 @@
 
       const ready = r.helpers.length < HELPER_COST.length && r.score >= HELPER_COST[r.helpers.length];
       if (ready && !this.hireNotified) this.toast('Puoi assumere un collega! (H o tocca il riquadro)');
+      if (ready !== this.hireNotified && this.hooks.onHireReady) this.hooks.onHireReady(ready);
       this.hireNotified = ready;
 
       const f = this.fx;

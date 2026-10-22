@@ -227,6 +227,7 @@
     game = new M.Game(cv, slot, {
       persist: () => M.Storage.save(slot),
       onPause: pause,
+      onHireReady: (on) => document.getElementById('tHire').classList.toggle('ready', on),
       onGameOver: (s) => gameOver(s),
     });
     game.start();

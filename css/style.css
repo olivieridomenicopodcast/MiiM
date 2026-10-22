@@ -62,3 +62,5 @@ label { font-size: 13px; color: #a9b4c2; display: block; margin: 8px 0 4px; }
 .itemrow { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
 .itemrow canvas { width: 100%; border-radius: 10px; }
 @media (max-width: 640px) { .itemrow { grid-template-columns: 1fr; } .itemrow canvas { max-width: 260px; margin: 0 auto; } }
+#touch #tHire.ready { background: #16a34a; animation: hirepulse .8s ease-in-out infinite; }
+@keyframes hirepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.0); transform: scale(1); } 50% { box-shadow: 0 0 14px 4px rgba(34,197,94,.9); transform: scale(1.08); } }
