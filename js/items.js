@@ -182,19 +182,27 @@
       ctx.font = 'bold 20px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = '#ef4444'; ctx.fillText('YTP', -29, -20); ctx.fillStyle = '#22d3ee'; ctx.fillText('YTP', -25, -22); ctx.fillStyle = '#fff'; ctx.fillText('YTP', -27, -21);
       rect(ctx, '#374151', -50, 32, 100, 5, 2); rect(ctx, '#ef4444', -50, 32, rnd(rg, 30, 80), 5, 2); poly(ctx, '#fff', [[-48, 38], [-48, 44], [-43, 41]].map(([x, y]) => [x, y - 2])); } };
+  // Parole che nella descrizione ne citano un'altra.
+  const MENTIONS = { WeeW: 'CiaaiC', CiaaiC: 'WeeW' };
+  const MENTION_TEXT = [
+    (o) => `Si dice sia in ottimi rapporti con ${o}.`,
+    (o) => `Non dirlo a nessuno, ma con ${o} c'è un debito di gratitudine.`,
+    (o) => `Spesso è in compagnia di ${o}.`,
+  ];
   const SPECIAL_ITEMS = { SooS: SAUCE, SaaS: SAUCE, IniinI: BALCONY, PooP: YTP };
   const PARTICIPLES = [['Trovato', 'Trovata'], ['Recuperato', 'Recuperata'], ['Abbandonato', 'Abbandonata'], ['Dimenticato', 'Dimenticata'], ['Ripescato', 'Ripescata']];
   const PLACES = ['dietro un vecchio frigorifero', 'sul fondo di una borsa', 'in un cassonetto del quartiere', 'sotto un divano', 'durante il trasloco di un cugino',
     'dopo una festa di compleanno', 'nel garage di un nonno', 'sul nastro, di martedì', 'dentro uno zaino dimenticato', 'accanto a una macchinetta del caffè'];
   const ADJ = [['sbiadito', 'sbiadita'], ['ammaccato', 'ammaccata'], ['misterioso', 'misteriosa'], ['stanco', 'stanca'], ['elegante', 'elegante'], ['curioso', 'curiosa'], ['consumato', 'consumata'], ['orgoglioso', 'orgogliosa']];
+  // Frasi senza concordanza di genere, valide per qualsiasi oggetto del tipo.
   const CURIO = [
-    ['Ha vissuto una vita avventurosa, almeno secondo lei.', 'Una volta conteneva qualcosa di importantissimo. Nessuno ricorda cosa.', 'Se la ascolti bene, sembra fare un leggero eco.', 'È convinta di essere un pezzo da collezione.'],
+    ['Ha vissuto una vita avventurosa, a sentire i diretti interessati.', 'Una volta conteneva qualcosa di importantissimo. Nessuno ricorda cosa.', 'Se ci avvicini l\'orecchio, fa un leggero eco.', 'Si crede un pezzo da collezione.'],
     ['Ha letto più notizie di un edicolante.', 'Dentro, un tempo, c\'era un ottimo consiglio. Purtroppo è sparito.', 'Si piega con grande dignità.', 'Un tempo era un albero e non lo dimentica.'],
-    ['Brilla anche quando nessuno la guarda.', 'Ha visto brindisi memorabili.', 'Se la tieni controluce, fa gli occhi dolci.', 'Fragile fuori, ostinata dentro.'],
-    ['Suona sempre un po\' cupa quando cade.', 'Ha resistito a tre traslochi e a un cognato.', 'Ama farsi trasformare in qualcosa di nuovo.', 'Ha un debole per i magneti.'],
-    ['Profuma ancora di bosco, ma solo se lo si vuole credere.', 'Ha un nodo che sembra un sorriso.', 'È stata sgabello, scaffale e, per un attimo, un trono.', 'Sa di segatura e di buoni propositi.'],
-    ['Appena compostato, diventa terra di prima qualità.', 'Aveva un futuro da pranzo importante.', 'Le mosche la adorano; i vicini molto meno.', 'Ha una data di scadenza che nessuno ha letto.'],
-    ['Nessuno sa bene da dove arrivi, e lei non parla.', 'Troppo mista per il riciclo, troppo simpatica per il disprezzo.', 'Ha già cambiato tre proprietari e nessuno l\'ha rimpianta.', 'Resta lì, con il suo mistero.'],
+    ['Brilla anche quando nessuno guarda.', 'Ha visto brindisi memorabili.', 'Controluce, fa gli occhi dolci.', 'Fragile fuori, tenace dentro.'],
+    ['Quando cade, il suo suono è sempre un po\' cupo.', 'Ha resistito a tre traslochi e a un cognato.', 'Ama farsi trasformare in qualcosa di nuovo.', 'Ha un debole per i magneti.'],
+    ['Profuma ancora di bosco, ma solo se lo si vuole credere.', 'Ha un nodo che sembra un sorriso.', 'Ha fatto da sgabello, da scaffale e, per un attimo, da trono.', 'Sa di segatura e di buoni propositi.'],
+    ['Dal compost nasce terra di prima qualità.', 'Aveva un futuro da pranzo importante.', 'Piace molto alle mosche; ai vicini molto meno.', 'Ha una data di scadenza che nessuno ha letto.'],
+    ['Nessuno sa da dove arrivi, e non parla.', 'Impossibile da riciclare, difficile da disprezzare.', 'Ha già cambiato tre proprietari e nessuno ne sente la mancanza.', 'Resta lì, con il suo mistero.'],
   ];
   const TIPS = ['Sciacqua e schiaccia prima di buttare: occupa meno spazio.', 'Piega e appiattisci: più carta entra in un solo viaggio.', 'Svuota e togli il tappo: il vetro si ricicla all\'infinito.',
     'Vuota e schiaccia: il metallo si ricicla all\'infinito.', 'Solo legno non verniciato: chiodi e viti vanno tolti.', 'Meglio se compostato: ritorna terra.', 'Se proprio non sai dove metterlo, qui va bene.'];
@@ -213,8 +221,9 @@
     const part = pick(rg, PARTICIPLES)[variant.g];
     const lenInfo = M.lenInfo(word.length);
     const text = FIXED_TEXT[word] || (special && special.compose ? special.compose(rg) : `${variant.art} ${variant.noun} ${adjs[0]} e ${adjs[1]}. ${part} ${pick(rg, PLACES)}. ${pick(rg, special && special.curio ? special.curio : CURIO[cat])}`);
+    const fullText = word in MENTIONS ? `${text} ${pick(rg, MENTION_TEXT)(MENTIONS[word])}` : text;
     return {
-      cat, variant, color, text, tip: special ? special.tip : TIPS[cat], seedKey: word,
+      cat, variant, color, text: fullText, tip: special ? special.tip : TIPS[cat], seedKey: word,
       rarity: RARITY[word.length][0], stars: RARITY[word.length][1], weight: WEIGHT[word.length], points: lenInfo.base, noun: variant.noun,
     };
   }
