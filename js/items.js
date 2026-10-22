@@ -228,7 +228,7 @@
     };
   }
 
-  function drawItem(ctx, word, w, h) {
+  function drawItem(ctx, word, w, h, noStars) {
     const d = info(word), rg = M.rngFor('disegno', word), cat = M.CATS[d.cat];
     const bg = ctx.createRadialGradient(w / 2, h * 0.45, 10, w / 2, h / 2, w * 0.75);
     bg.addColorStop(0, M.shade(cat.color, -0.45));
@@ -243,6 +243,7 @@
     ctx.rotate(rnd(rg, -0.2, 0.2));
     d.variant.draw(ctx, d.color, rg);
     ctx.restore();
+    if (noStars) return;
     ctx.fillStyle = cat.color;
     ctx.font = 'bold 14px system-ui, sans-serif';
     ctx.textAlign = 'left';

@@ -7,6 +7,7 @@
   const HELPER_NAMES = ['Gino', 'Marta', 'Pino', 'Lia', 'Otto', 'Anna', 'Ada', 'Bob', 'Ele', 'Ivo'];
   const UNTANGLE_GAIN = 0.14, UNTANGLE_DECAY = 0.35; // ogni pressione riempie la barra del 14%, che cala del 35% al secondo
   const TANGLE_MIN_GAP = 8, TANGLE_CHANCE = 0.15; // un groviglio ogni ~14 rifiuti, mai prima del 7°
+  const CARD_MIN = 74, CARD_NAME_H = 26, CARD_IMG = 66; // scheda del rifiuto sul nastro
   const PLAYER_SPEED = 260, HELPER_SPEED = 165;
   const CHAR_FONT = 'bold 22px "Courier New", monospace';
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -49,8 +50,12 @@
 
     // Larghezza di un rifiuto sul nastro (se è un groviglio di due parole, le due targhe si sovrappongono).
     wOf(o) {
-      if (o.pair && o.pair.length > 1) return this.plateW(o.pair[0].len) + 0.55 * this.plateW(o.pair[1].len);
-      return this.plateW(o.len);
+      if (o.pair && o.pair.length > 1) return this.cardW(o.pair[0].len) + 0.55 * this.cardW(o.pair[1].len);
+      return this.cardW(o.len);
+    }
+
+    cardW(len) {
+      return Math.max(this.plateW(len), CARD_MIN);
     }
 
     // Moltiplicatore di velocità di ciò che si porta in mano (due parole insieme pesano di più).
@@ -518,7 +523,7 @@
       this.drawBelt(ctx);
       let near = null;
       if (!carrying) for (const w of r.words) if (this.reachable(w, p.x) && (!near || Math.abs(w.x - p.x) < Math.abs(near.x - p.x))) near = w;
-      for (const w of r.words) this.drawItem(ctx, w, w.x, this.BELT_TOP + 8, w === near);
+      for (const w of r.words) this.drawItem(ctx, w, w.x, this.BELT_TOP + 8, w === near, true);
       for (const h of r.helpers) if (h.carry) this.drawItem(ctx, h.carry, h.x, this.WALK_Y - 60, false);
       if (carrying) {
         this.drawItem(ctx, p.carry, p.x, this.WALK_Y - 60, false);
@@ -625,9 +630,9 @@
       ctx.fillText('◀ SCARTO', 6, this.BELT_TOP + 56);
     }
 
-    // Disegna un rifiuto singolo o un groviglio di due parole.
-    drawItem(ctx, o, x, y, hl) {
-      if (!o.pair) return this.drawPlate(ctx, o.text, o.cat, x, y, hl);
+    // Sul nastro il rifiuto è una "scheda" (nome sopra, disegno sotto); in mano resta la targa col solo nome.
+    drawItem(ctx, o, x, y, hl, onBelt) {
+      if (!o.pair) return onBelt ? this.drawCard(ctx, o.text, o.cat, x, y, hl) : this.drawPlate(ctx, o.text, o.cat, x, y, hl);
       const [a, b] = o.pair;
       if (!o.tangled || !b) {
         // staccati (portati in mano): uno sopra l'altro
@@ -635,18 +640,70 @@
         if (b) this.drawPlate(ctx, b.text, b.cat, x, y - 36, false);
         return;
       }
-      const w0 = this.plateW(a.len), w1 = this.plateW(b.len), tot = this.wOf(o);
+      const w0 = this.cardW(a.len), w1 = this.cardW(b.len), tot = this.wOf(o);
       const c0 = x - tot / 2 + w0 / 2, c1 = x + tot / 2 - w1 / 2;
-      this.drawPlate(ctx, a.text, a.cat, c0, y + 4, hl, 0, -0.06);
-      this.drawPlate(ctx, b.text, b.cat, c1, y - 8, hl, 0, 0.1);
+      this.drawCard(ctx, a.text, a.cat, c0, y + 4, hl, -0.06);
+      this.drawCard(ctx, b.text, b.cat, c1, y - 8, hl, 0.1);
       ctx.save();
       ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
       const zx = c1 - w1 / 2;
-      ctx.moveTo(zx - 8, y - 22); ctx.lineTo(zx + 2, y - 12); ctx.lineTo(zx - 6, y - 2); ctx.lineTo(zx + 4, y + 8); ctx.lineTo(zx - 4, y + 18);
+      ctx.moveTo(zx - 8, y - 66); ctx.lineTo(zx + 4, y - 48); ctx.lineTo(zx - 6, y - 30); ctx.lineTo(zx + 4, y - 12); ctx.lineTo(zx - 6, y + 6); ctx.lineTo(zx + 2, y + 14);
       ctx.stroke();
+      ctx.restore();
+    }
+
+    // Disegno del rifiuto (lo stesso del Pokédex), memorizzato una volta per parola.
+    sprite(text) {
+      this.sprites = this.sprites || {};
+      if (!this.sprites[text]) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 128;
+        M.drawItem(c.getContext('2d'), text, 128, 128, true);
+        this.sprites[text] = c;
+      }
+      return this.sprites[text];
+    }
+
+    drawCard(ctx, text, cat, x, y, hl, rot) {
+      if (rot) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        this.drawCard(ctx, text, cat, 0, 0, hl);
+        ctx.restore();
+        return;
+      }
+      const col = M.CATS[cat].color, w = this.cardW(text.length), h = CARD_NAME_H + CARD_IMG + 6;
+      const left = x - w / 2, top = y + 16 - h;
+      ctx.save();
+      ctx.fillStyle = '#0f1318';
+      M.rr(ctx, left, top, w, h, 9);
+      ctx.fill();
+      ctx.save();
+      M.rr(ctx, left + 4, top + CARD_NAME_H, w - 8, CARD_IMG, 6);
+      ctx.clip();
+      ctx.drawImage(this.sprite(text), left + 4, top + CARD_NAME_H, w - 8, CARD_IMG);
+      ctx.restore();
+      ctx.lineWidth = hl ? 3.5 : 2.5;
+      ctx.strokeStyle = hl ? '#fff' : M.shade(col, -0.1);
+      M.rr(ctx, left, top, w, h, 9);
+      ctx.stroke();
+      ctx.font = CHAR_FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = col;
+      const half = text.length / 2, x0 = x - (text.length * this.charW) / 2;
+      for (let i = 0; i < text.length; i++) {
+        ctx.save();
+        ctx.translate(x0 + (i + 0.5) * this.charW, top + CARD_NAME_H / 2 + 1);
+        if (i >= half) ctx.scale(-1, 1);
+        ctx.fillText(text[i], 0, 0);
+        ctx.restore();
+      }
       ctx.restore();
     }
 
