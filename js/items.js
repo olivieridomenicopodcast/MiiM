@@ -145,7 +145,7 @@
       rect(ctx, W, -28, -24, 6, 58, 3); } };
   const BALCONY = {
     noun: 'pelato al balcone', art: 'Un', g: 0,
-    tip: 'Non si ricicla: va nell\'indifferenziato, con un saluto rispettoso.',
+    tip: 'Va messo nell\'organico a testa in giù.',
     compose(rg) {
       const adj = ['imperturbabile', 'pensieroso', 'vigile', 'sereno', 'immobile'].sort(() => rg() - 0.5).slice(0, 2);
       const place = ['Avvistato al terzo piano, sempre sullo stesso balcone.', 'Presente ogni mattina, prima ancora del giornalaio.', 'Si ferma a guardare il traffico da prima che esistesse il semaforo.'];
